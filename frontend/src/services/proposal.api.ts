@@ -277,6 +277,12 @@ export type SubmitRevisedProposalPayload = {
   };
   budgetSources?: BudgetSource[];
   revisionResponse?: string;
+  // Optional classification / priority / discipline / sector updates for revision
+  classification?: string;
+  classificationDetails?: string;
+  priorityAreas?: string;
+  discipline?: string;
+  sector?: string;
 };
 
 export type SubmitRevisedProposalResponse = {
@@ -362,6 +368,23 @@ export const submitRevisedProposal = async (
 
   if (payload.revisionResponse) {
     body.revision_response = payload.revisionResponse;
+  }
+
+  // Optional classification / priority / discipline / sector updates for revision
+  if (payload.classification) {
+    body.classification = payload.classification;
+  }
+  if (payload.classificationDetails) {
+    body.classification_details = payload.classificationDetails;
+  }
+  if (payload.priorityAreas) {
+    body.priority_areas = payload.priorityAreas;
+  }
+  if (payload.discipline) {
+    body.discipline = payload.discipline;
+  }
+  if (payload.sector) {
+    body.sector = payload.sector;
   }
 
   const { data } = await api.post<SubmitRevisedProposalResponse>("/proposal/submit-revised", body, {

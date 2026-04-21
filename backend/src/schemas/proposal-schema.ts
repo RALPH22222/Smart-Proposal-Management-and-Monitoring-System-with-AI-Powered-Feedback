@@ -262,6 +262,12 @@ export const submitRevisedProposalSchema = z.object({
   // Optional Form 3 replacement. When present, overwrites proposals.work_plan_file_url
   // and stamps audit columns. Absent = keep existing Form 3 (or keep absent).
   work_plan_file_url: z.string().url("Invalid work plan file URL").optional(),
+  // Optional classification / priority / discipline / sector updates for revision
+  classification: z.string().max(100).optional(),
+  classification_details: z.string().max(500).optional(),
+  priority_areas: z.string().max(200).optional(),
+  discipline: z.string().max(100).optional(),
+  sector: z.string().max(100).optional(),
 });
 
 export const handleExtensionRequestSchema = z.object({

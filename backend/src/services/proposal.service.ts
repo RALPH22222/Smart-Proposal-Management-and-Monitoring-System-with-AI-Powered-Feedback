@@ -2247,7 +2247,7 @@ export class ProposalService {
   }
 
   async submitRevision(input: Omit<SubmitRevisedProposalInput, "file_url">, fileUrl: string) {
-    const { proposal_id, proponent_id, project_title, revision_response, plan_start_date, plan_end_date, budget, work_plan_file_url } =
+    const { proposal_id, proponent_id, project_title, revision_response, plan_start_date, plan_end_date, budget, work_plan_file_url, classification, classification_details, priority_areas, discipline, sector } =
       input;
 
     // 1. Verify proposal exists and belongs to proponent
@@ -2356,6 +2356,39 @@ export class ProposalService {
     if (project_title) updatePayload.project_title = project_title;
     if (plan_start_date) updatePayload.plan_start_date = plan_start_date;
     if (plan_end_date) updatePayload.plan_end_date = plan_end_date;
+
+    // Optional classification / priority / discipline / sector updates
+    if (classification) updatePayload.classification = classification;
+    if (classification_details) updatePayload.classification_details = classification_details;
+    if (priority_areas) {
+      // Resolve priority name to ID and update the join table
+      const { data: priorityRow } = await this.db
+        .from("priorities")
+        .select("id")
+        .eq("name", priority_areas)
+        .maybeSingle();
+      if (priorityRow) {
+        // Replace existing priority join rows
+        await this.db.from("proposal_priorities").delete().eq("proposal_id", proposal_id);
+        await this.db.from("proposal_priorities").insert({ proposal_id, priority_id: priorityRow.id });
+      }
+    }
+    if (discipline) {
+      const { data: disciplineRow } = await this.db
+        .from("disciplines")
+        .select("id")
+        .eq("name", discipline)
+        .maybeSingle();
+      if (disciplineRow) updatePayload.discipline_id = disciplineRow.id;
+    }
+    if (sector) {
+      const { data: sectorRow } = await this.db
+        .from("sectors")
+        .select("id")
+        .eq("name", sector)
+        .maybeSingle();
+      if (sectorRow) updatePayload.sector_id = sectorRow.id;
+    }
 
     // Optional Form 3 (Work & Financial Plan) replacement. Overwrites the column; we
     // don't version the attachment itself, just stamp who/when for audit purposes.

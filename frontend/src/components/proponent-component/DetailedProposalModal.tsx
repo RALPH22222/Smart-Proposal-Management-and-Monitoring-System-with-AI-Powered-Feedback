@@ -85,7 +85,6 @@ interface DetailedProposalModalProps {
   sectors?: LookupItem[];
   disciplines?: LookupItem[];
   priorities?: LookupItem[];
-  stations?: LookupItem[];
   tags?: LookupItem[];
   departments?: LookupItem[];
 }
@@ -150,7 +149,6 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   sectors = [],
   disciplines = [],
   priorities = [],
-  stations = [],
   departments = [],
 }) => {
   const navigate = useNavigate();
@@ -634,7 +632,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     sourceIndex: number,
     category: "ps" | "mooe" | "co",
     itemIndex: number,
-    field: "item" | "amount",
+    field: "item" | "amount" | "subcategory" | "specifications" | "quantity" | "unit" | "unitPrice",
     value: string | number
   ) => {
     if (!editedProposal) return;
@@ -643,7 +641,18 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     const breakdown = { ...source.breakdown };
     const categoryItems = [...breakdown[category]];
 
-    categoryItems[itemIndex] = { ...categoryItems[itemIndex], [field]: value };
+    const updatedItem = { ...categoryItems[itemIndex], [field]: value };
+
+    // Auto-calculate amount from quantity × unitPrice if both are present
+    if (field === "quantity" || field === "unitPrice") {
+      const qty = Number(field === "quantity" ? value : updatedItem.quantity) || 0;
+      const price = Number(field === "unitPrice" ? value : updatedItem.unitPrice) || 0;
+      if (qty > 0 && price > 0) {
+        updatedItem.amount = qty * price;
+      }
+    }
+
+    categoryItems[itemIndex] = updatedItem;
     breakdown[category] = categoryItems;
     source.breakdown = breakdown;
 
@@ -667,7 +676,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     const breakdown = { ...source.breakdown };
     const categoryItems = [...breakdown[category]];
 
-    categoryItems.push({ item: "", amount: 0 });
+    categoryItems.push({ item: "", amount: 0, subcategory: "", specifications: "", quantity: 0, unit: "", unitPrice: 0 });
     breakdown[category] = categoryItems;
     source.breakdown = breakdown;
     newSources[sourceIndex] = source;
@@ -777,6 +786,12 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
               : undefined,
           },
           budgetSources: editedProposal?.budgetSources,
+          // Classification / Priority / Discipline / Sector updates for revision
+          classification: editedProposal?.classification !== proposal.classification ? editedProposal?.classification : undefined,
+          classificationDetails: editedProposal?.classificationDetails !== proposal.classificationDetails ? editedProposal?.classificationDetails : undefined,
+          priorityAreas: editedProposal?.priorityAreas !== proposal.priorityAreas ? editedProposal?.priorityAreas : undefined,
+          discipline: editedProposal?.discipline !== proposal.discipline ? editedProposal?.discipline : undefined,
+          sector: editedProposal?.sector !== proposal.sector ? editedProposal?.sector : undefined,
         };
 
         // Submit via the service
@@ -868,6 +883,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   const canEditSchedule = isInRevisionMode && isEditing;
   const canEditBudget = isInRevisionMode && isEditing;
   const canEditFile = isInRevisionMode && isEditing;
+  const canEditClassification = isInRevisionMode && isEditing;
   // Restrict other fields in revision mode
   const canEditOtherFields = !isInRevisionMode && isEditing;
   const isFunded = normalizedStatus === 'funded';
@@ -2316,7 +2332,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5 mb-2">
                     <Tags className="w-4 h-4 text-[#C8102E]" /> Classification
                   </h4>
-                  {canEditOtherFields ? (
+                  {canEditClassification || canEditOtherFields ? (
                     <div className="space-y-2">
                       <input
                         type="text"
@@ -2355,32 +2371,6 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   )}
                 </div>
 
-                {/* R&D Station */}
-                <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <Microscope className="w-4 h-4 text-[#C8102E]" />
-                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                      R&D Station
-                    </h4>
-                  </div>
-                  {canEditOtherFields ? (
-                    <select
-                      value={currentData.rdStation}
-                      onChange={(e) => handleInputChange("rdStation", e.target.value)}
-                      className={`w-full px-3 py-2 rounded-lg border ${getInputClass(true)}`}
-                    >
-                      <option value="">Select Station</option>
-                      {stations.map((s) => (
-                        <option key={s.id} value={s.name}>{s.name}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <p className="text-sm font-medium text-slate-900">
-                      {currentData.rdStation}
-                    </p>
-                  )}
-                </div>
-
                 {/* Priority Areas */}
                 <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
                   <div className="flex items-center gap-1.5 mb-2">
@@ -2389,7 +2379,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                       Priority Areas/STAND Classification
                     </h4>
                   </div>
-                  {canEditOtherFields ? (
+                  {canEditClassification || canEditOtherFields ? (
                     <select
                       value={currentData.priorityAreas}
                       onChange={(e) => handleInputChange("priorityAreas", e.target.value)}
@@ -2415,7 +2405,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                       Discipline
                     </h4>
                   </div>
-                  {canEditOtherFields ? (
+                  {canEditClassification || canEditOtherFields ? (
                     <select
                       value={currentData.discipline}
                       onChange={(e) => handleInputChange("discipline", e.target.value)}
@@ -2432,7 +2422,8 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                     </p>
                   )}
                 </div>
-                {/* Sector (Added) */}
+
+                {/* Sector */}
                 <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
                   <div className="flex items-center gap-1.5 mb-2">
                     <Target className="w-4 h-4 text-[#C8102E]" />
@@ -2440,7 +2431,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                       Sector/Commodity
                     </h4>
                   </div>
-                  {canEditOtherFields ? (
+                  {canEditClassification || canEditOtherFields ? (
                     <select
                       value={currentData.sector}
                       onChange={(e) => handleInputChange("sector", e.target.value)}
@@ -2600,77 +2591,58 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
 
                         {/* Card Body: Breakdown */}
                         {canEditBudget ? (
-                          /* ---- EDIT MODE: side-by-side columns ---- */
-                          <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 divide-y md:divide-y-0 md:divide-x divide-slate-100">
-                            {/* PS Column */}
-                            <div className="space-y-2 pt-2 md:pt-0">
-                              <div className="flex justify-between items-center mb-2">
-                                <h5 className="font-bold text-xs text-slate-600 uppercase">Personal Services (PS)</h5>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.ps}</span>
-                                  <button onClick={() => handleAddBudgetBreakdownItem(index, "ps")} className="text-white bg-[#C8102E] hover:bg-[#a00c24] rounded px-1.5 py-0.5">
-                                    <Plus className="w-3 h-3" />
-                                  </button>
-                                </div>
-                              </div>
-                              <div className="space-y-1">
-                                {budget.breakdown?.ps && budget.breakdown.ps.length > 0 ? (
-                                  budget.breakdown.ps.map((item, i) => (
-                                    <div key={i} className="flex gap-2 items-center w-full">
-                                      <input value={item.item} onChange={e => handleBudgetBreakdownChange(index, "ps", i, "item", e.target.value)} className={`w-full flex-1 border px-1 py-0.5 rounded ${getInputClass(true)}`} placeholder="Item" />
-                                      <input type="number" value={item.amount || ''} onChange={e => handleBudgetBreakdownChange(index, "ps", i, "amount", e.target.value)} className={`w-20 border px-1 py-0.5 rounded text-right ${getInputClass(true)}`} placeholder="Amount" />
-                                      <button onClick={() => handleRemoveBudgetBreakdownItem(index, "ps", i)} className="text-red-500 hover:bg-red-50 p-0.5 rounded"><Trash2 className="w-3 h-3" /></button>
+                          /* ---- EDIT MODE: table layout with full line-item fields ---- */
+                          <div className="p-4 space-y-4">
+                            {(["ps", "mooe", "co"] as const).map((category) => {
+                              const catLabel = category === "ps" ? "Personal Services (PS)" : category === "mooe" ? "MOOE" : "Capital Outlay (CO)";
+                              const catTotal = budget[category];
+                              const items = budget.breakdown?.[category] || [];
+                              return (
+                                <div key={category}>
+                                  <div className="flex justify-between items-center mb-2">
+                                    <h5 className="font-bold text-xs text-slate-600 uppercase">{catLabel}</h5>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{catTotal}</span>
+                                      <button onClick={() => handleAddBudgetBreakdownItem(index, category)} className="text-white bg-[#C8102E] hover:bg-[#a00c24] rounded px-1.5 py-0.5">
+                                        <Plus className="w-3 h-3" />
+                                      </button>
                                     </div>
-                                  ))
-                                ) : (<p className="text-xs italic text-slate-400">No items</p>)}
-                              </div>
-                            </div>
-                            {/* MOOE Column */}
-                            <div className="space-y-2 pt-2 md:pt-0 pl-0 md:pl-4">
-                              <div className="flex justify-between items-center mb-2">
-                                <h5 className="font-bold text-xs text-slate-600 uppercase">MOOE</h5>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.mooe}</span>
-                                  <button onClick={() => handleAddBudgetBreakdownItem(index, "mooe")} className="text-white bg-[#C8102E] hover:bg-[#a00c24] rounded px-1.5 py-0.5">
-                                    <Plus className="w-3 h-3" />
-                                  </button>
-                                </div>
-                              </div>
-                              <div className="space-y-1">
-                                {budget.breakdown?.mooe && budget.breakdown.mooe.length > 0 ? (
-                                  budget.breakdown.mooe.map((item, i) => (
-                                    <div key={i} className="flex gap-2 items-center w-full">
-                                      <input value={item.item} onChange={e => handleBudgetBreakdownChange(index, "mooe", i, "item", e.target.value)} className={`w-full flex-1 border px-1 py-0.5 rounded ${getInputClass(true)}`} placeholder="Item" />
-                                      <input type="number" value={item.amount || ''} onChange={e => handleBudgetBreakdownChange(index, "mooe", i, "amount", e.target.value)} className={`w-20 border px-1 py-0.5 rounded text-right ${getInputClass(true)}`} placeholder="Amount" />
-                                      <button onClick={() => handleRemoveBudgetBreakdownItem(index, "mooe", i)} className="text-red-500 hover:bg-red-50 p-0.5 rounded"><Trash2 className="w-3 h-3" /></button>
+                                  </div>
+                                  {items.length > 0 ? (
+                                    <div className="rounded-lg border border-slate-100 overflow-hidden">
+                                      <table className="w-full text-xs">
+                                        <thead>
+                                          <tr className="bg-slate-50 border-b border-slate-100">
+                                            <th className="text-left px-2 py-1.5 font-semibold text-slate-500 uppercase tracking-wider w-[18%]">Subcategory</th>
+                                            <th className="text-left px-2 py-1.5 font-semibold text-slate-500 uppercase tracking-wider w-[22%]">Item</th>
+                                            <th className="text-left px-2 py-1.5 font-semibold text-slate-500 uppercase tracking-wider w-[18%]">Spec / Volume</th>
+                                            <th className="text-center px-2 py-1.5 font-semibold text-slate-500 uppercase tracking-wider w-[8%]">Qty</th>
+                                            <th className="text-center px-2 py-1.5 font-semibold text-slate-500 uppercase tracking-wider w-[8%]">Unit</th>
+                                            <th className="text-right px-2 py-1.5 font-semibold text-slate-500 uppercase tracking-wider w-[14%]">Unit Price</th>
+                                            <th className="text-right px-2 py-1.5 font-semibold text-slate-500 uppercase tracking-wider w-[12%]">Amount</th>
+                                            <th className="w-[6%]"></th>
+                                          </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-50">
+                                          {items.map((item, i) => (
+                                            <tr key={i} className="hover:bg-slate-50/50">
+                                              <td className="px-2 py-1"><input value={item.subcategory || ""} onChange={e => handleBudgetBreakdownChange(index, category, i, "subcategory", e.target.value)} className={`w-full border px-1 py-0.5 rounded ${getInputClass(true)}`} placeholder="Subcategory" /></td>
+                                              <td className="px-2 py-1"><input value={item.item} onChange={e => handleBudgetBreakdownChange(index, category, i, "item", e.target.value)} className={`w-full border px-1 py-0.5 rounded ${getInputClass(true)}`} placeholder="Item" /></td>
+                                              <td className="px-2 py-1"><input value={item.specifications || ""} onChange={e => handleBudgetBreakdownChange(index, category, i, "specifications", e.target.value)} className={`w-full border px-1 py-0.5 rounded ${getInputClass(true)}`} placeholder="Spec / Volume" /></td>
+                                              <td className="px-2 py-1"><input type="number" value={item.quantity || ''} onChange={e => handleBudgetBreakdownChange(index, category, i, "quantity", e.target.value)} className={`w-full border px-1 py-0.5 rounded text-center ${getInputClass(true)}`} placeholder="Qty" /></td>
+                                              <td className="px-2 py-1"><input value={item.unit || ""} onChange={e => handleBudgetBreakdownChange(index, category, i, "unit", e.target.value)} className={`w-full border px-1 py-0.5 rounded text-center ${getInputClass(true)}`} placeholder="Unit" /></td>
+                                              <td className="px-2 py-1"><input type="number" value={item.unitPrice || ''} onChange={e => handleBudgetBreakdownChange(index, category, i, "unitPrice", e.target.value)} className={`w-full border px-1 py-0.5 rounded text-right ${getInputClass(true)}`} placeholder="Unit Price" /></td>
+                                              <td className="px-2 py-1 text-right font-semibold text-slate-800 whitespace-nowrap">₱{Number(item.amount || 0).toLocaleString()}</td>
+                                              <td className="px-1 py-1 text-center"><button onClick={() => handleRemoveBudgetBreakdownItem(index, category, i)} className="text-red-500 hover:bg-red-50 p-0.5 rounded"><Trash2 className="w-3 h-3" /></button></td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
                                     </div>
-                                  ))
-                                ) : (<p className="text-xs italic text-slate-400">No items</p>)}
-                              </div>
-                            </div>
-                            {/* CO Column */}
-                            <div className="space-y-2 pt-2 md:pt-0 pl-0 md:pl-4">
-                              <div className="flex justify-between items-center mb-2">
-                                <h5 className="font-bold text-xs text-slate-600 uppercase">Capital Outlay (CO)</h5>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-semibold text-slate-900 bg-slate-100 px-2 py-0.5 rounded">{budget.co}</span>
-                                  <button onClick={() => handleAddBudgetBreakdownItem(index, "co")} className="text-white bg-[#C8102E] hover:bg-[#a00c24] rounded px-1.5 py-0.5">
-                                    <Plus className="w-3 h-3" />
-                                  </button>
+                                  ) : (<p className="text-xs italic text-slate-400">No items</p>)}
                                 </div>
-                              </div>
-                              <div className="space-y-1">
-                                {budget.breakdown?.co && budget.breakdown.co.length > 0 ? (
-                                  budget.breakdown.co.map((item, i) => (
-                                    <div key={i} className="flex gap-2 items-center w-full">
-                                      <input value={item.item} onChange={e => handleBudgetBreakdownChange(index, "co", i, "item", e.target.value)} className={`w-full flex-1 border px-1 py-0.5 rounded ${getInputClass(true)}`} placeholder="Item" />
-                                      <input type="number" value={item.amount || ''} onChange={e => handleBudgetBreakdownChange(index, "co", i, "amount", e.target.value)} className={`w-20 border px-1 py-0.5 rounded text-right ${getInputClass(true)}`} placeholder="Amount" />
-                                      <button onClick={() => handleRemoveBudgetBreakdownItem(index, "co", i)} className="text-red-500 hover:bg-red-50 p-0.5 rounded"><Trash2 className="w-3 h-3" /></button>
-                                    </div>
-                                  ))
-                                ) : (<p className="text-xs italic text-slate-400">No items</p>)}
-                              </div>
-                            </div>
+                              );
+                            })}
                           </div>
                         ) : (
                           /* ---- READ-ONLY MODE: table layout per category ---- */

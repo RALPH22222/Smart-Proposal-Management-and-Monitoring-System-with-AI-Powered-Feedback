@@ -35,7 +35,7 @@ export const handler = buildCorsHeaders(async (event) => {
     };
   }
 
-  const { file_url, proposal_id, proponent_id, project_title, revision_response, plan_start_date, plan_end_date, budget, work_plan_file_url } = validation.data;
+  const { file_url, proposal_id, proponent_id, project_title, revision_response, plan_start_date, plan_end_date, budget, work_plan_file_url, classification, classification_details, priority_areas, discipline, sector } = validation.data;
 
   // Submit revision via service (file already uploaded to S3 by browser)
   const proposalService = new ProposalService(supabase);
@@ -49,6 +49,11 @@ export const handler = buildCorsHeaders(async (event) => {
       plan_end_date,
       budget,
       work_plan_file_url,
+      classification,
+      classification_details,
+      priority_areas,
+      discipline,
+      sector,
     },
     file_url
   );
