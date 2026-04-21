@@ -129,9 +129,9 @@ const AdminEndorsementPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
-  const loadEndorsementProposals = async () => {
+  const loadEndorsementProposals = async (forceLoading = false) => {
     try {
-      if (!proposalsCache[activeTab]) setLoading(true);
+      if (forceLoading || !proposalsCache[activeTab]) setLoading(true);
       const [data, depts] = await Promise.all([
         getProposalsForEndorsement(activeTab),
         fetchDepartments(),
@@ -251,22 +251,22 @@ const AdminEndorsementPage: React.FC = () => {
     remarks: string,
     revisionDeadline?: string,
     includedEvaluatorIds?: string[],
-  ) => {
-    if (!selectedProposal || !user?.id) return;
+  ): Promise<boolean> => {
+    if (!selectedProposal || !user?.id) return false;
 
     if (status === 'endorsed') {
-      handleEndorseProposal(selectedProposal.id, remarks);
+      return handleEndorseProposal(selectedProposal.id, remarks);
     } else if (status === 'revised') {
-      handleReturnForRevision(selectedProposal.id, remarks, revisionDeadline, includedEvaluatorIds);
+      return handleReturnForRevision(selectedProposal.id, remarks, revisionDeadline, includedEvaluatorIds);
     } else if (status === 'rejected') {
-      handleRejectProposal(selectedProposal.id, remarks);
+      return handleRejectProposal(selectedProposal.id, remarks);
     }
 
-    handleCloseDecisionModal();
+    return false;
   };
 
   const handleEndorseProposal = async (proposalId: string, remarks: string) => {
-    if (!user?.id) return;
+    if (!user?.id) return false;
 
     try {
       Swal.fire({
@@ -283,11 +283,13 @@ const AdminEndorsementPage: React.FC = () => {
         remarks,
       });
 
+      await loadEndorsementProposals(true);
       await Swal.fire('Success', 'Proposal endorsed successfully.', 'success');
-      loadEndorsementProposals();
+      return true;
     } catch (error: any) {
       console.error('Endorse error:', error);
       Swal.fire('Error', error.response?.data?.message || 'Failed to endorse proposal.', 'error');
+      return false;
     }
   };
 
@@ -346,11 +348,13 @@ const AdminEndorsementPage: React.FC = () => {
             : undefined,
       });
 
+      await loadEndorsementProposals(true);
       await Swal.fire('Success', 'Revision request sent successfully.', 'success');
-      loadEndorsementProposals();
+      return true;
     } catch (error: any) {
       console.error('Revision error:', error);
       Swal.fire('Error', error.response?.data?.message || 'Failed to request revision.', 'error');
+      return false;
     }
   };
 
@@ -368,11 +372,13 @@ const AdminEndorsementPage: React.FC = () => {
         comment: remarks,
       });
 
+      await loadEndorsementProposals(true);
       await Swal.fire('Success', 'Proposal rejected successfully.', 'success');
-      loadEndorsementProposals();
+      return true;
     } catch (error: any) {
       console.error('Reject error:', error);
       Swal.fire('Error', error.response?.data?.message || 'Failed to reject proposal.', 'error');
+      return false;
     }
   };
 
