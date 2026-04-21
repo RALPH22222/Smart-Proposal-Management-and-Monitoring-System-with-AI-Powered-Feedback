@@ -1,10 +1,11 @@
 import JSZip from "jszip";
 import * as pdfjsLib from "pdfjs-dist";
+import pdfWorkerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { PDFDocument } from "pdf-lib";
 import type { TextItem } from "pdfjs-dist/types/src/display/api";
 
-// Configure pdfjs-dist worker for Vite
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+// Bundle the PDF.js worker with the app so redaction doesn't depend on a CDN.
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
 
 /**
  * XML file paths within a DOCX archive that may contain visible text.
