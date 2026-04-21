@@ -56,11 +56,12 @@ interface RnDEvaluatorPageModalProps {
   onClose: () => void;
   currentEvaluators?: EvaluatorOption[];
   onReassign: (newEvaluators: EvaluatorOption[]) => Promise<void> | void;
-  onExtensionAction?: (evaluatorId: string, action: 'Accept' | 'Reject') => void;
+  onExtensionAction?: (evaluatorId: string, action: 'Accept' | 'Reject') => Promise<void> | void;
   proposalTitle: string;
   proposalId?: number | null;
   proposalStatus?: string;
   isLoading?: boolean;
+  extensionActionLoading?: { evaluatorId: string; action: 'Accept' | 'Reject' } | null;
 }
 
 const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
@@ -73,6 +74,7 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
   proposalId = null,
   proposalStatus = "",
   isLoading = false,
+  extensionActionLoading = null,
 }) => {
   // Check if the proposal status allows evaluator modifications
   const isEditable = ["under_evaluation", "review_rnd", "pending", "revised_proposal"].includes(proposalStatus);
@@ -773,11 +775,35 @@ const RnDEvaluatorPageModal: React.FC<RnDEvaluatorPageModalProps> = ({
                                 </div>
                                 {onExtensionAction && isEditable && (
                                   <div className="flex gap-2 mt-3 pt-2 border-t border-blue-200/50">
-                                    <button onClick={() => onExtensionAction(ev.id, 'Accept')} className="flex items-center gap-1 px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors">
-                                      <Check className="w-3 h-3" /> Approve
+                                    <button
+                                      onClick={() => onExtensionAction(ev.id, 'Accept')}
+                                      disabled={extensionActionLoading !== null}
+                                      className="flex items-center gap-1 px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                                    >
+                                      {extensionActionLoading?.evaluatorId === ev.id && extensionActionLoading.action === 'Accept' ? (
+                                        <>
+                                          <Loader2 className="w-3 h-3 animate-spin" /> Approving...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Check className="w-3 h-3" /> Approve
+                                        </>
+                                      )}
                                     </button>
-                                    <button onClick={() => onExtensionAction(ev.id, 'Reject')} className="flex items-center gap-1 px-2 py-1 bg-white border border-blue-300 text-blue-700 text-xs rounded hover:bg-blue-50 transition-colors">
-                                      <X className="w-3 h-3" /> Reject
+                                    <button
+                                      onClick={() => onExtensionAction(ev.id, 'Reject')}
+                                      disabled={extensionActionLoading !== null}
+                                      className="flex items-center gap-1 px-2 py-1 bg-white border border-blue-300 text-blue-700 text-xs rounded hover:bg-blue-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                                    >
+                                      {extensionActionLoading?.evaluatorId === ev.id && extensionActionLoading.action === 'Reject' ? (
+                                        <>
+                                          <Loader2 className="w-3 h-3 animate-spin" /> Rejecting...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <X className="w-3 h-3" /> Reject
+                                        </>
+                                      )}
                                     </button>
                                   </div>
                                 )}

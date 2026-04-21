@@ -83,6 +83,7 @@ export const EvaluatorPage: React.FC = () => {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [editLoading, setEditLoading] = useState(false);
+  const [extensionActionLoading, setExtensionActionLoading] = useState<{ evaluatorId: string; action: 'Accept' | 'Reject' } | null>(null);
 
   // --- DATA FETCHING ---
   const fetchData = async () => {
@@ -209,6 +210,7 @@ export const EvaluatorPage: React.FC = () => {
   const handleExtensionAction = async (evaluatorId: string, action: 'Accept' | 'Reject') => {
     if (!selectedProposalId) return;
 
+    setExtensionActionLoading({ evaluatorId, action });
     try {
       await handleExtensionRequest({
         proposal_id: selectedProposalId,
@@ -246,6 +248,8 @@ export const EvaluatorPage: React.FC = () => {
         title: "Error",
         text: err?.response?.data?.message || "Failed to process extension request.",
       });
+    } finally {
+      setExtensionActionLoading(null);
     }
   };
 
@@ -721,6 +725,7 @@ export const EvaluatorPage: React.FC = () => {
         proposalId={selectedProposalId}
         proposalStatus={selectedProposalStatus}
         isLoading={editLoading}
+        extensionActionLoading={extensionActionLoading}
       />
     </>
   );
