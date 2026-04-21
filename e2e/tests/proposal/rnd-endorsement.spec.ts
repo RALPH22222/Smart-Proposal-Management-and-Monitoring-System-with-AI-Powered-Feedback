@@ -16,7 +16,7 @@ test.describe.serial("RND-ENDORSE: final endorsement", () => {
     const { page } = await loggedInAs("rnd");
     const rnd = new RndDashboardPage(page);
     await rnd.openEndorsements();
-    await expect(page.getByText(title!, { exact: false })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText(title!, { exact: false }).first()).toBeVisible({ timeout: 20_000 });
   });
 
   test("RND-ENDORSE-02: RND views evaluator scores and comments", async ({ loggedInAs }) => {
@@ -50,7 +50,7 @@ test.describe.serial("RND-ENDORSE: final endorsement", () => {
 
     const { page } = await loggedInAs("proponent");
     await page.getByRole("button", { name: "Profile", exact: true }).click();
-    await expect(page.getByText(title!, { exact: false })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(title!, { exact: false }).first()).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText(/funded/i).first()).toBeVisible();
   });
 });

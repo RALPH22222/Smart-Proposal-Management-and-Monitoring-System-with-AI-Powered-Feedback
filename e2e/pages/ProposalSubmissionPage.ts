@@ -181,44 +181,107 @@ export class ProposalSubmissionPage {
    * Click the "Auto-generate" tags button and wait until at least one
    * tag chip appears. The backend AI service needs the project_title
    * (which is already auto-filled by the earlier analysis) to run.
+   *
+   * If the service fails (rate limit, network, or any non-2xx), the
+   * source code at basicInfo.tsx:560-590 fires a blocking SweetAlert
+   * ("API Limit Reached" / "AI Generation Failed") AND falls back to
+   * selecting the "Other" tag. The fallback satisfies our chip-wait
+   * — but the Swal stays on screen, covering everything underneath
+   * and blocking the next navigation click. Always dismiss any Swal
+   * after the chip lands.
    */
   async autoGenerateTags() {
     const btn = this.page.getByRole("button", { name: /Auto-generate/i });
     await btn.click();
-    // Success = either a tag chip appears in the "selectedTags" area,
-    // or the API rate-limits and fallback "Other" is picked. Either way,
-    // a chip is visible.
-    const anyTagChip = this.page.locator(".text-blue-700.border-blue-200, [class*='bg-blue-50']").first();
-    // The selected-tags area only renders when selectedTags.length > 0,
-    // so waiting for any visible tag chip with an "×" close button is
-    // the most reliable signal.
     await this.page.waitForFunction(
       () => {
-        // Tag chips contain an × (X) button and match the styling; any
-        // button inside a .bg-blue-50 container is a tag remove control.
+        // Tag chip = div.bg-blue-50.border-blue-200 containing an X button.
         const chips = document.querySelectorAll('[class*="bg-blue-50"] button, .border-blue-200');
         return chips.length > 0;
       },
       { timeout: 45_000 },
     );
+    await this.dismissAnyLingeringSwal();
   }
 
   /**
-   * Fallback: pick the first tag from the dropdown. Used when the
-   * AI tag service is unavailable in the test env.
+   * Dismiss any SweetAlert modal currently on screen. Used after
+   * actions that may trigger a blocking Swal we don't care about
+   * (AI tag generation failures, temporary network blips, etc.).
+   * Safe to call when no Swal is present — it returns immediately.
+   */
+  async dismissAnyLingeringSwal() {
+    const swal = this.page.locator(".swal2-popup");
+    if (!(await swal.isVisible({ timeout: 300 }).catch(() => false))) return;
+
+    // Prefer the confirm button; fall back to the close button; fall
+    // back to Escape. SweetAlert uses `.swal2-confirm` for the primary
+    // action and `.swal2-close` for the dismiss X in the corner.
+    const confirmBtn = this.page.locator(".swal2-confirm");
+    if (await confirmBtn.isVisible({ timeout: 300 }).catch(() => false)) {
+      await confirmBtn.click();
+    } else {
+      const closeBtn = this.page.locator(".swal2-close");
+      if (await closeBtn.isVisible({ timeout: 300 }).catch(() => false)) {
+        await closeBtn.click();
+      } else {
+        await this.page.keyboard.press("Escape");
+      }
+    }
+    await swal.waitFor({ state: "hidden", timeout: 5_000 }).catch(() => {});
+  }
+
+  /**
+   * Pick the first tag from the dropdown. PREFERRED over autoGenerateTags
+   * in tests because:
+   *
+   *   The Auto-generate flow has a fallback (basicInfo.tsx:572-588) that
+   *   synthesises an "Other" tag with `id: Date.now()` when the AI service
+   *   fails AND the real tags table doesn't have an "Other" row. That
+   *   phantom id passes frontend validation but FK-violates on submit:
+   *     proposal_tags_tag_fk violated — tag_id=<Date.now()> not in tags
+   *   Picking from the dropdown uses a real tag.id from the preloaded
+   *   lookups, so no phantom IDs ever reach the backend.
+   *
+   * Scoped to `.tags-dropdown-container` so the locator can't accidentally
+   * match the cooperating-agencies or priorities dropdowns.
    */
   async pickFirstTagFromDropdown() {
-    const tagsInput = this.page.getByPlaceholder(/Search tags|Loading tags/).first();
+    const tagsContainer = this.page.locator(".tags-dropdown-container").first();
+
+    // Wait for tags to finish loading (placeholder transitions from
+    // "Loading tags..." to "Search tags or select from options").
+    const tagsInput = tagsContainer.getByPlaceholder(/Search tags/i).first();
+    await expect(tagsInput).toBeVisible({ timeout: 15_000 });
+
+    await tagsInput.scrollIntoViewIfNeeded();
     await tagsInput.click();
-    const firstOption = this.page.locator('[class*="cursor-pointer"]').filter({ hasText: /./ }).first();
+
+    // The dropdown renders as an absolute-positioned div whose direct
+    // children are the selectable tag options (each with a checkbox + text).
+    const firstOption = tagsContainer
+      .locator(".absolute > div")
+      .filter({ has: this.page.locator('input[type="checkbox"]') })
+      .first();
+    await firstOption.waitFor({ state: "visible", timeout: 10_000 });
     await firstOption.click();
-    // Click outside to close the dropdown.
-    await this.page.locator("body").click({ position: { x: 10, y: 10 } });
+
+    // Close the dropdown.
+    await this.page.keyboard.press("Escape").catch(() => {});
+
+    // Verify a tag chip was actually added (styling is bg-blue-50 + border-blue-200).
+    await expect(
+      this.page.locator(".bg-blue-50.border-blue-200").first(),
+    ).toBeVisible({ timeout: 5_000 });
   }
 
   // --- Step 3: Research Details ------------------------------------------
 
   async gotoResearchDetails() {
+    // Defensive: if a previous action (tags auto-generate, etc.) left
+    // a SweetAlert on screen, it will block the tab click and we'd
+    // fail with a 15 s "element not clickable" timeout. Clear first.
+    await this.dismissAnyLingeringSwal();
     await this.researchDetailsTab.click();
     // Heading + "Implementation Sites" label should be visible.
     await expect(this.page.getByText(/Implementation Sites/i).first()).toBeVisible({ timeout: 10_000 });
@@ -320,9 +383,93 @@ export class ProposalSubmissionPage {
   // --- Step 4: Budget via LIB import -------------------------------------
 
   async gotoBudget() {
+    // Same defensive dismissal as gotoResearchDetails — a stray Swal
+    // from an earlier step would block the section-tab click.
+    await this.dismissAnyLingeringSwal();
     await this.budgetTab.click();
     await expect(this.page.getByRole("button", { name: "Import Template", exact: true }))
       .toBeVisible({ timeout: 10_000 });
+  }
+
+  // --- LIB modal building blocks (used by the LIB-IMPORT spec) -----------
+
+  /** Return the LIB modal's container locator (anchored by its heading). */
+  libModalRoot() {
+    return this.page
+      .locator("div.fixed.inset-0")
+      .filter({
+        has: this.page.getByRole("heading", { name: /Import WMSU LIB Template/i }),
+      });
+  }
+
+  /** Open the LIB import modal. Assumes you're on the Budget Section tab. */
+  async openLibImportModal() {
+    await this.page.getByRole("button", { name: "Import Template", exact: true }).click();
+    await expect(this.page.getByRole("heading", { name: /Import WMSU LIB Template/i }))
+      .toBeVisible({ timeout: 10_000 });
+  }
+
+  /** Attach a file to the LIB modal's hidden docx-only input (no click-commit). */
+  async attachLibFile(absolutePath: string) {
+    const modalFileInput = this.page.locator('input[type="file"][accept^=".docx"]').first();
+    await modalFileInput.setInputFiles(absolutePath);
+  }
+
+  /** Like attachLibFile, but synthesizes an in-memory buffer. */
+  async attachLibBuffer(name: string, buffer: Buffer, mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+    const modalFileInput = this.page.locator('input[type="file"][accept^=".docx"]').first();
+    await modalFileInput.setInputFiles({ name, mimeType, buffer });
+  }
+
+  /**
+   * Poll the modal for one of the four resolved states:
+   *   "ok"       — preview + Import button visible
+   *   "rejected" — "Upload rejected" card visible
+   *   "error"    — "Failed to parse" error visible
+   *   "timeout"  — 60 s elapsed with no terminal state
+   * Safe against strict-mode: every locator is .first() and scoped
+   * to the modal root.
+   */
+  async waitForLibParseOutcome(timeoutMs = 60_000): Promise<"ok" | "rejected" | "error" | "timeout"> {
+    const modal = this.libModalRoot();
+    const importBtn = modal.getByRole("button", { name: /^Import \d+ items?$/ }).first();
+    const rejection = modal.getByText(/Upload rejected/i).first();
+    const parseError = modal.getByText(/Failed to parse/i).first();
+
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      if (await importBtn.isVisible({ timeout: 200 }).catch(() => false)) return "ok";
+      if (await rejection.isVisible({ timeout: 200 }).catch(() => false)) return "rejected";
+      if (await parseError.isVisible({ timeout: 200 }).catch(() => false)) return "error";
+      await this.page.waitForTimeout(300);
+    }
+    return "timeout";
+  }
+
+  /** Find the currently-visible Import button inside the modal. */
+  libImportCommitButton() {
+    return this.libModalRoot().getByRole("button", { name: /^Import \d+ items?$/ }).first();
+  }
+
+  /** Close the modal via its footer Cancel button. */
+  async cancelLibModal() {
+    const cancelBtn = this.libModalRoot().getByRole("button", { name: /^Cancel$/ }).first();
+    await cancelBtn.click();
+    await expect(this.page.getByRole("heading", { name: /Import WMSU LIB Template/i }))
+      .toBeHidden({ timeout: 5_000 });
+  }
+
+  /** Count the budget source cards currently rendered on the Budget Section. */
+  async countBudgetSourceCards(): Promise<number> {
+    return this.page
+      .getByPlaceholder(/^e\.g\., GAA, LGUs, Industry$/)
+      .count();
+  }
+
+  /** Read the source-name input's current value (for assertions about LIB filename pre-fill). */
+  async libModalSourceInputValue(): Promise<string> {
+    const sourceInput = this.libModalRoot().getByPlaceholder(/GAA, LGUs, Industry/i).first();
+    return (await sourceInput.inputValue().catch(() => "")).trim();
   }
 
   /**
@@ -680,9 +827,44 @@ export class ProposalSubmissionPage {
   }
 
   async expectSubmissionSuccess() {
+    // The submit flow shows up to THREE SweetAlerts back-to-back using
+    // the SAME `.swal2-popup` DOM element — Swal.fire() re-uses the node
+    // and swaps its title/text:
+    //   1. "Submitting Proposal..." (loading spinner, while the API runs)
+    //   2a. "Proposal Submitted!" (success)  —OR—
+    //   2b. "Submission Failed" / "Validation Error" (error path)
+    //
+    // Poll the popup text for the first terminal state (2a or 2b) and
+    // fail fast with the error copy if the backend returned an error,
+    // rather than waiting the full 90 s timeout for success text that
+    // will never arrive.
     const popup = this.page.locator(".swal2-popup");
-    await expect(popup).toBeVisible({ timeout: 60_000 });
-    await expect(popup).toContainText(/success|submitted|created/i);
+    await expect(popup).toBeVisible({ timeout: 10_000 });
+
+    const TERMINAL_TIMEOUT = 90_000; // cold-start Lambda + S3 upload
+    const deadline = Date.now() + TERMINAL_TIMEOUT;
+    while (Date.now() < deadline) {
+      const text = (await popup.innerText().catch(() => "")).trim();
+      if (/Proposal Submitted|submitted successfully/i.test(text)) {
+        return; // success
+      }
+      if (/Submission Failed|Validation Error|Unauthorized|Auth Error/i.test(text)) {
+        // Dump the popup text and any validation-error list for
+        // actionable diagnosis — without this, the failure is opaque.
+        throw new Error(
+          "Backend rejected the proposal submission.\n" +
+          "Swal contents: " + text.slice(0, 500) + "\n" +
+          "Check CloudWatch logs for the create-proposal Lambda — the generic " +
+          "500 message 'Internal server error' is returned when proposalService.create " +
+          "returns an error (see backend/src/handlers/proposal/create-proposal.ts).",
+        );
+      }
+      await this.page.waitForTimeout(500);
+    }
+    throw new Error(
+      `Proposal submission neither succeeded nor explicitly failed within ${TERMINAL_TIMEOUT}ms. ` +
+      `Swal text: ${(await popup.innerText().catch(() => "")).slice(0, 300)}`,
+    );
   }
 
   // --- Read-back helpers (sanity checks after auto-fill) ------------------

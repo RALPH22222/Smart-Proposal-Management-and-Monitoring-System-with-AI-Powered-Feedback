@@ -18,7 +18,9 @@ test.describe.serial("MON-FUND: fund-request lifecycle", () => {
     const { page } = await loggedInAs("proponent");
     const mon = new ProponentMonitoringPage(page);
     await mon.gotoViaSidebar();
-    await expect(page.getByText(title!, { exact: false })).toBeVisible({ timeout: 20_000 });
+    // .first() — auto-filled titles repeat across test runs; see the
+    // strict-mode note in submission.spec.ts PROP-SUBMIT-08.
+    await expect(page.getByText(title!, { exact: false }).first()).toBeVisible({ timeout: 20_000 });
   });
 
   test("MON-FUND-02: proponent submits Q1 fund request within budget", async ({ loggedInAs }) => {

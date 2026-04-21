@@ -17,7 +17,7 @@ test.describe.serial("EVAL-REVIEW: evaluator scoring flow", () => {
     const { page } = await loggedInAs("evaluator");
     const evalPage = new EvaluatorReviewPage(page);
     await evalPage.openProposalsTab();
-    await expect(page.getByText(title!, { exact: false })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText(title!, { exact: false }).first()).toBeVisible({ timeout: 20_000 });
   });
 
   test("EVAL-REVIEW-02: evaluator accepts the assignment", async ({ loggedInAs }) => {
