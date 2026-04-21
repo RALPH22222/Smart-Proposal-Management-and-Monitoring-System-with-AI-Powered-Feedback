@@ -1193,6 +1193,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 <ProposalInsightButtons
                   proposalId={proposal.id}
                   proposalTitle={currentData.title}
+                  anonymizeEvaluators
                 />
               )}
               {isInRevisionMode && !revisionChanges && !isLoadingRevision && canSubmitRevision && (

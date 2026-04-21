@@ -9,6 +9,8 @@ interface ProposalInsightsPanelProps {
   proposalTitle?: string;
   /** If true, shows both Timeline and Revision tabs. If false, only shows Timeline. */
   showRevisions?: boolean;
+  /** If true, evaluator identities are replaced with numbered labels in the timeline. */
+  anonymizeEvaluators?: boolean;
 }
 
 /**
@@ -16,7 +18,12 @@ interface ProposalInsightsPanelProps {
  * slide-out panel with the relevant content. Designed to be dropped into any
  * proposal detail modal header area with minimal integration.
  */
-export function ProposalInsightButtons({ proposalId, proposalTitle, showRevisions = true }: ProposalInsightsPanelProps) {
+export function ProposalInsightButtons({
+  proposalId,
+  proposalTitle,
+  showRevisions = true,
+  anonymizeEvaluators = false,
+}: ProposalInsightsPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeView, setActiveView] = useState<'timeline' | 'revisions'>('timeline');
 
@@ -113,7 +120,10 @@ export function ProposalInsightButtons({ proposalId, proposalTitle, showRevision
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-5 border-t border-slate-200">
               {activeView === 'timeline' ? (
-                <ProposalTimeline proposalId={proposalId} />
+                <ProposalTimeline
+                  proposalId={proposalId}
+                  anonymizeEvaluators={anonymizeEvaluators}
+                />
               ) : (
                 <ProposalRevisionContext proposalId={proposalId} />
               )}

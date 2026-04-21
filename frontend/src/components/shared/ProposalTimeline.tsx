@@ -56,12 +56,47 @@ const HIDDEN_DETAIL_KEYS = new Set([
   'new_rnd_id',
 ]);
 
+const EVALUATOR_ACTOR_ACTIONS = new Set([
+  'decision_evaluator',
+  'evaluator_accepted',
+  'evaluator_declined',
+  'evaluator_extension_requested',
+  'evaluation_scores_submitted',
+]);
+
 interface ProposalTimelineProps {
   proposalId: number | string;
   onClose?: () => void;
+  anonymizeEvaluators?: boolean;
 }
 
-export default function ProposalTimeline({ proposalId }: ProposalTimelineProps) {
+const getEvaluatorIdentifier = (event: TimelineEvent): string | null => {
+  const evaluatorId = event.details?.evaluator_id;
+  const evaluatorName = typeof event.details?.evaluator_name === 'string'
+    ? event.details.evaluator_name.trim().toLowerCase()
+    : '';
+  const actorName = typeof event.actor === 'string' ? event.actor.trim().toLowerCase() : '';
+
+  if (typeof evaluatorId === 'string' && evaluatorId.trim()) {
+    return `id:${evaluatorId.trim()}`;
+  }
+
+  if (typeof evaluatorId === 'number') {
+    return `id:${String(evaluatorId)}`;
+  }
+
+  if (evaluatorName) {
+    return `name:${evaluatorName}`;
+  }
+
+  if (EVALUATOR_ACTOR_ACTIONS.has(event.action) && actorName) {
+    return `actor:${actorName}`;
+  }
+
+  return null;
+};
+
+export default function ProposalTimeline({ proposalId, anonymizeEvaluators = false }: ProposalTimelineProps) {
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -94,6 +129,18 @@ export default function ProposalTimeline({ proposalId }: ProposalTimelineProps) 
       return next;
     });
   };
+
+  const evaluatorAliases = new Map<string, string>();
+  let evaluatorCount = 0;
+
+  if (anonymizeEvaluators) {
+    for (const event of events) {
+      const identifier = getEvaluatorIdentifier(event);
+      if (!identifier || evaluatorAliases.has(identifier)) continue;
+      evaluatorCount += 1;
+      evaluatorAliases.set(identifier, `Evaluator ${evaluatorCount}`);
+    }
+  }
 
   if (loading) {
     return (
@@ -149,6 +196,12 @@ export default function ProposalTimeline({ proposalId }: ProposalTimelineProps) 
         {events.map((event, index) => {
           const config = getActionConfig(event.action);
           const Icon = config.icon;
+          const evaluatorAlias = anonymizeEvaluators
+            ? evaluatorAliases.get(getEvaluatorIdentifier(event) || '')
+            : null;
+          const displayActor = evaluatorAlias && EVALUATOR_ACTOR_ACTIONS.has(event.action)
+            ? evaluatorAlias
+            : event.actor;
           const visibleDetailEntries = event.details
             ? Object.entries(event.details).filter(
                 ([key, value]) =>
@@ -205,7 +258,7 @@ export default function ProposalTimeline({ proposalId }: ProposalTimelineProps) 
                     )}
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs text-slate-500">{event.actor}</span>
+                    <span className="text-xs text-slate-500">{displayActor}</span>
                     <span className="text-[10px] text-slate-400">{formatDateTime(event.timestamp)}</span>
                   </div>
                 </div>
@@ -214,8 +267,14 @@ export default function ProposalTimeline({ proposalId }: ProposalTimelineProps) 
                 {hasDetails && isExpanded && (
                   <div className="mt-2 p-2.5 bg-slate-50 rounded-lg border border-slate-100 text-xs text-slate-600 space-y-1">
                     {visibleDetailEntries.map(([key, value]) => {
-                      const displayKey = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-                      const displayValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+                      const displayKey = key === 'evaluator_name'
+                        ? 'Evaluator'
+                        : key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                      const displayValue = key === 'evaluator_name' && evaluatorAlias
+                        ? evaluatorAlias
+                        : typeof value === 'object'
+                          ? JSON.stringify(value)
+                          : String(value);
                       return (
                         <div key={key} className="flex gap-2">
                           <span className="font-medium text-slate-500 whitespace-nowrap">{displayKey}:</span>
