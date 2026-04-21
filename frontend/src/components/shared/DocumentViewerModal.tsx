@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import {
-  X, CheckCircle, FileText, Calendar, Loader2, AlertTriangle, Eye, ChevronRight
+  X, CheckCircle, FileText, Calendar, Loader2, AlertTriangle, Eye, ChevronRight, Download
 } from 'lucide-react';
 import { formatDateShort } from '../../utils/date-formatter';
 import { api } from '../../utils/axios';
+import { isOfficeExtension, openSignedUrl } from '../../utils/signed-url';
 
 interface DocumentViewerModalProps {
   isOpen: boolean;
@@ -144,11 +145,40 @@ const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
                   <p className="text-sm text-slate-500">Preparing secure document preview…</p>
                 </div>
               ) : signedUrl ? (
-                <iframe
-                  src={signedUrl}
-                  className="w-full h-full"
-                  title={title}
-                />
+                // Browsers can only render PDF and images inline. For Office
+                // docs (.docx / .xlsx / .pptx / etc.) an iframe either shows
+                // garbage or a "can't display" page, so we surface a download
+                // CTA instead — the user opens it in their desktop app.
+                isOfficeExtension(
+                  (() => {
+                    const src = documentUrl || '';
+                    const match = src.match(/\.([a-zA-Z0-9]+)(?:$|\?)/);
+                    return match ? match[1] : '';
+                  })(),
+                ) ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-50 px-6 text-center">
+                    <FileText className="w-12 h-12 text-slate-400" />
+                    <p className="text-sm font-semibold text-slate-700">This is an Office document</p>
+                    <p className="text-xs text-slate-500 max-w-sm">
+                      Word, Excel, and PowerPoint files can't be previewed in the browser.
+                      Download the file and open it in your desktop app.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => openSignedUrl(documentUrl)}
+                      className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#C8102E] text-white text-sm font-semibold hover:bg-[#a80d26] transition-colors"
+                    >
+                      <Download className="w-4 h-4" />
+                      Download document
+                    </button>
+                  </div>
+                ) : (
+                  <iframe
+                    src={signedUrl}
+                    className="w-full h-full"
+                    title={title}
+                  />
+                )
               ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-50">
                   <AlertTriangle className="w-8 h-8 text-slate-400" />

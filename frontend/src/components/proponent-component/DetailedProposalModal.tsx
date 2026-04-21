@@ -41,7 +41,7 @@ import {
 } from "lucide-react";
 import { differenceInMonths, parseISO, isValid, addMonths, format } from "date-fns";
 import Swal from "sweetalert2";
-import { openProposalFile } from "../../utils/signed-url";
+import { openProposalFile, downloadSignedUrl } from "../../utils/signed-url";
 import { api } from "../../utils/axios";
 import type { Proposal, BudgetSource } from "../../types/proponentTypes";
 import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary, fetchRevisionSummary, type RevisionSummary, submitRevisedProposal, requestProponentExtension, getProponentExtensionRequests, type ProponentExtensionRequest, fetchBudgetSubcategories, type BudgetSubcategoryDto } from "../../services/proposal.api";
@@ -1773,14 +1773,24 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                               </p>
                             </div>
                           </div>
-                          <a
-                            href="#"
-                            onClick={(e) => { e.preventDefault(); openProposalFile(fileUrl); }}
-                            className="p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition-colors inline-flex items-center justify-center"
-                            title="Open/Download"
-                          >
-                            <Download className="w-4 h-4" />
-                          </a>
+                          <div className="flex items-center gap-1">
+                            <a
+                              href="#"
+                              onClick={(e) => { e.preventDefault(); openProposalFile(fileUrl); }}
+                              className="p-2 text-slate-500 hover:bg-slate-50 hover:text-[#C8102E] rounded-lg transition-colors inline-flex items-center justify-center"
+                              title="View"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </a>
+                            <a
+                              href="#"
+                              onClick={(e) => { e.preventDefault(); downloadSignedUrl(fileUrl); }}
+                              className="p-2 text-slate-500 hover:bg-slate-50 hover:text-[#C8102E] rounded-lg transition-colors inline-flex items-center justify-center"
+                              title="Download"
+                            >
+                              <Download className="w-4 h-4" />
+                            </a>
+                          </div>
                         </div>
                       );
                     })}
@@ -1810,14 +1820,24 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                         <p className="text-xs text-slate-500">DOST Form 3 — Work & Financial Plan</p>
                       </div>
                     </div>
-                    <a
-                      href="#"
-                      onClick={(e) => { e.preventDefault(); openProposalFile((proposal as any).workPlanFileUrl!); }}
-                      className="p-2 text-slate-500 hover:bg-slate-50 rounded-lg transition-colors inline-flex items-center justify-center"
-                      title="Open/Download"
-                    >
-                      <Download className="w-4 h-4" />
-                    </a>
+                    <div className="flex items-center gap-1">
+                      <a
+                        href="#"
+                        onClick={(e) => { e.preventDefault(); openProposalFile((proposal as any).workPlanFileUrl!); }}
+                        className="p-2 text-slate-500 hover:bg-slate-50 hover:text-[#C8102E] rounded-lg transition-colors inline-flex items-center justify-center"
+                        title="View"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </a>
+                      <a
+                        href="#"
+                        onClick={(e) => { e.preventDefault(); downloadSignedUrl((proposal as any).workPlanFileUrl!); }}
+                        className="p-2 text-slate-500 hover:bg-slate-50 hover:text-[#C8102E] rounded-lg transition-colors inline-flex items-center justify-center"
+                        title="Download"
+                      >
+                        <Download className="w-4 h-4" />
+                      </a>
+                    </div>
                   </div>
                 )}
                 {canEditFile && (

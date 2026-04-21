@@ -27,7 +27,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { formatDateShort } from "../../utils/date-formatter";
-import { openProposalFile, getFileName } from "../../utils/signed-url";
+import { openProposalFile, getFileName, downloadSignedUrl } from "../../utils/signed-url";
 import RubricsModal from "./RubricsModal";
 
 const RATING_CRITERIA = {
@@ -333,7 +333,11 @@ export default function ReviewModal({
                     </p>
                   </div>
                 </div>
-                <button className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-[#C8102E] hover:text-white rounded-md transition-all">
+                <button
+                  onClick={(e) => { e.stopPropagation(); downloadSignedUrl(proposal.projectFile); }}
+                  title="Download"
+                  className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-[#C8102E] hover:text-white rounded-md transition-all"
+                >
                   <Download className="w-3 h-3" />
                 </button>
               </div>
