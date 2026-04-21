@@ -26,6 +26,9 @@ interface BudgetSectionProps {
   onBudgetItemAdd: () => void;
   onBudgetItemRemove: (id: number) => void;
   onBudgetItemUpdate: (id: number, field: string, value: any) => void;
+  removedBudgetSourceUndo: { index: number; item: BudgetItem } | null;
+  onUndoBudgetItemRemoval: () => void;
+  onDismissBudgetItemUndo: () => void;
   onOpenBudgetModal: (itemId: number, category: 'ps' | 'mooe' | 'co') => void;
   // Phase 2 of LIB feature: import callback. Receives parsed items already mapped
   // into the ExpenseItem shape, grouped by category, plus a user-supplied source name.
@@ -53,6 +56,9 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
   onBudgetItemAdd,
   onBudgetItemRemove,
   onBudgetItemUpdate,
+  removedBudgetSourceUndo,
+  onUndoBudgetItemRemoval,
+  onDismissBudgetItemUndo,
   onOpenBudgetModal,
   onOpenLibImport,
   autoFilledFields = new Set(),
@@ -323,6 +329,37 @@ const BudgetSection: React.FC<BudgetSectionProps> = ({
       </div>
 
       <div className="space-y-4">
+        {removedBudgetSourceUndo && (
+          <div className="flex items-start justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 shadow-sm">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-sm font-semibold text-amber-900">
+                <FaExclamationTriangle className="w-4 h-4 shrink-0" />
+                <span>Funding source removed</span>
+              </div>
+              <p className="mt-1 truncate text-xs text-amber-800">
+                {removedBudgetSourceUndo.item.source?.trim() || 'Untitled source'} was removed from the LIB budget section.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={onUndoBudgetItemRemoval}
+                className="rounded-lg bg-amber-900 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-amber-950"
+              >
+                Undo
+              </button>
+              <button
+                type="button"
+                onClick={onDismissBudgetItemUndo}
+                className="rounded-lg border border-amber-300 px-2 py-1.5 text-xs font-medium text-amber-900 transition-colors hover:bg-amber-100"
+                aria-label="Dismiss removed funding source notice"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {formData.budgetItems.map((item, index) => {
           const rowPS = sumLineTotals(item.budget?.ps);
           const rowMOOE = sumLineTotals(item.budget?.mooe);
@@ -556,6 +593,7 @@ export const BudgetBreakdownModal: React.FC<{
   const [subcategories, setSubcategories] = useState<BudgetSubcategory[]>([]);
   const [loadingSubs, setLoadingSubs] = useState(false);
   const [subError, setSubError] = useState<string | null>(null);
+  const [removedLineItemUndo, setRemovedLineItemUndo] = useState<{ index: number; item: ExpenseItem } | null>(null);
 
   // Load admin-managed subcategories filtered by the active category (ps/mooe/co).
   // Cached in proposal.api so flipping between modal categories is instant after the first hit.
@@ -580,6 +618,10 @@ export const BudgetBreakdownModal: React.FC<{
       cancelled = true;
     };
   }, [activeModal.category]);
+
+  useEffect(() => {
+    setRemovedLineItemUndo(null);
+  }, [activeModal.itemId, activeModal.category]);
 
   const otherSubcategoryId = useMemo(
     () => subcategories.find((s) => s.code === OTHER_SUBCATEGORY_CODE)?.id ?? null,
@@ -634,8 +676,23 @@ export const BudgetBreakdownModal: React.FC<{
     const item = formData.budgetItems.find(i => i.id === itemId);
     const currentBreakdown = getBreakdown(item, category);
     if (currentBreakdown.length <= 1) return;
+    const removedItem = currentBreakdown[index];
+    if (!removedItem) return;
     const updatedBreakdown = currentBreakdown.filter((_, idx) => idx !== index);
     updateBudgetStructure(itemId, category, updatedBreakdown);
+    setRemovedLineItemUndo({ index, item: removedItem });
+  };
+
+  const handleUndoBreakdownRemoval = () => {
+    if (!removedLineItemUndo) return;
+    const { itemId, category } = activeModal;
+    const item = formData.budgetItems.find((entry) => entry.id === itemId);
+    const currentBreakdown = getBreakdown(item, category);
+    const restored = [...currentBreakdown];
+    const restoreIndex = Math.min(removedLineItemUndo.index, restored.length);
+    restored.splice(restoreIndex, 0, removedLineItemUndo.item);
+    updateBudgetStructure(itemId, category, restored);
+    setRemovedLineItemUndo(null);
   };
 
   const formatCurrency = (amount: number) => {
@@ -726,6 +783,36 @@ export const BudgetBreakdownModal: React.FC<{
         {!subError && !loadingSubs && subcategories.length === 0 && (
           <div className="px-4 py-2 bg-amber-50 text-amber-800 text-xs border-b border-amber-100">
             Subcategory list is empty. Ask an admin to seed <code>budget_subcategories</code>. You can still type line items — classification is optional.
+          </div>
+        )}
+        {removedLineItemUndo && (
+          <div className="flex items-start justify-between gap-3 border-b border-amber-200 bg-amber-50 px-4 py-3">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-sm font-semibold text-amber-900">
+                <FaExclamationTriangle className="w-4 h-4 shrink-0" />
+                <span>Line item removed</span>
+              </div>
+              <p className="mt-1 truncate text-xs text-amber-800">
+                {removedLineItemUndo.item.itemName?.trim() || removedLineItemUndo.item.spec?.trim() || 'Untitled line item'} was removed from this budget list.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={handleUndoBreakdownRemoval}
+                className="rounded-lg bg-amber-900 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-amber-950"
+              >
+                Undo
+              </button>
+              <button
+                type="button"
+                onClick={() => setRemovedLineItemUndo(null)}
+                className="rounded-lg border border-amber-300 px-2 py-1.5 text-xs font-medium text-amber-900 transition-colors hover:bg-amber-100"
+                aria-label="Dismiss removed line item notice"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         )}
 

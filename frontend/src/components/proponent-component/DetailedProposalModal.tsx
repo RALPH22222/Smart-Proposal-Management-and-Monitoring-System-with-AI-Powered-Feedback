@@ -56,7 +56,6 @@ import { fetchProjectMembers, type ProjectMemberData } from "../../services/Proj
 import { ProposalInsightButtons } from "../shared/ProposalInsightsPanel";
 import SecureImage from "../shared/SecureImage";
 import { LibImportModal } from "../../pages/users/Proponent/submission/budgetSection";
-import { promptBudgetUndo } from "../../utils/budgetUndoPrompt";
 
 const extractS3Key = (url: string): string | null => {
   if (!url) return null;
@@ -93,6 +92,20 @@ interface DetailedProposalModalProps {
   tags?: LookupItem[];
   departments?: LookupItem[];
 }
+
+type RevisionBudgetUndoState =
+  | {
+      kind: "source";
+      index: number;
+      source: BudgetSource;
+    }
+  | {
+      kind: "line";
+      sourceIndex: number;
+      category: "ps" | "mooe" | "co";
+      itemIndex: number;
+      item: BudgetLineItem;
+    };
 
 const ScrollKeyframes = () => (
   <style>{`
@@ -192,6 +205,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   const [extensionReason, setExtensionReason] = useState("");
   const [isSubmittingExtension, setIsSubmittingExtension] = useState(false);
   const [lateSubmissionPolicy, setLateSubmissionPolicy] = useState<LateSubmissionPolicy | null>(null);
+  const [budgetUndoState, setBudgetUndoState] = useState<RevisionBudgetUndoState | null>(null);
 
   const [revisionChanges, setRevisionChanges] = useState<{
     projectTitle?: { old: string; new: string };
@@ -217,6 +231,10 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   const isInRevisionMode = ['revise', 'revision', 'revision_rnd', 'revision required', 'not_submitted', 'not submitted'].includes(normalizedStatus);
   const isNotSubmittedMode = ['not_submitted', 'not submitted'].includes(normalizedStatus);
   const isRejectedMode = ['rejected', 'disapproved', 'reject', 'rejected_rnd', 'rejected proposal'].includes(normalizedStatus);
+
+  useEffect(() => {
+    setBudgetUndoState(null);
+  }, [isOpen, proposal?.id]);
 
   const getOrdinal = (n: number) => {
     const s = ["th", "st", "nd", "rd"];
@@ -675,6 +693,23 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
       minimumFractionDigits: 2,
     }).format(amount);
 
+  const recalculateBudgetSourceTotals = (source: BudgetSource): BudgetSource => {
+    const sumAmounts = (items: BudgetLineItem[]) =>
+      items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+
+    const psTotal = sumAmounts(source.breakdown.ps);
+    const mooeTotal = sumAmounts(source.breakdown.mooe);
+    const coTotal = sumAmounts(source.breakdown.co);
+
+    return {
+      ...source,
+      ps: formatBudgetCurrency(psTotal),
+      mooe: formatBudgetCurrency(mooeTotal),
+      co: formatBudgetCurrency(coTotal),
+      total: formatBudgetCurrency(psTotal + mooeTotal + coTotal),
+    };
+  };
+
   const buildImportedBudgetSource = (
     grouped: { ps: ExpenseItem[]; mooe: ExpenseItem[]; co: ExpenseItem[] },
     sourceName: string,
@@ -762,7 +797,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     setEditedProposal({ ...editedProposal, budgetSources: newSources });
   };
 
-  const handleRemoveBudgetItem = async (index: number) => {
+  const handleRemoveBudgetItem = (index: number) => {
     if (!editedProposal) return;
     const removedSource = editedProposal.budgetSources[index];
     if (!removedSource) return;
@@ -774,17 +809,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         budgetSources: prev.budgetSources.filter((_, i) => i !== index),
       };
     });
-
-    const shouldUndo = await promptBudgetUndo(removedSource.source);
-    if (!shouldUndo) return;
-
-    setEditedProposal((prev) => {
-      if (!prev) return prev;
-      const budgetSources = [...prev.budgetSources];
-      const restoreIndex = Math.min(index, budgetSources.length);
-      budgetSources.splice(restoreIndex, 0, removedSource);
-      return { ...prev, budgetSources };
-    });
+    setBudgetUndoState({ kind: "source", index, source: removedSource });
   };
 
   const handleBudgetBreakdownChange = (
@@ -815,16 +840,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     breakdown[category] = categoryItems;
     source.breakdown = breakdown;
 
-    const catTotal = categoryItems.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
-    source[category] = `₱${catTotal.toLocaleString()}`;
-
-    const total =
-      breakdown.ps.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0) +
-      breakdown.mooe.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0) +
-      breakdown.co.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
-    source.total = `₱${total.toLocaleString()}`;
-
-    newSources[sourceIndex] = source;
+    newSources[sourceIndex] = recalculateBudgetSourceTotals(source);
     setEditedProposal({ ...editedProposal, budgetSources: newSources });
   };
 
@@ -838,7 +854,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     categoryItems.push({ item: "", amount: 0, subcategory: "", specifications: "", quantity: 0, unit: "", unitPrice: 0 });
     breakdown[category] = categoryItems;
     source.breakdown = breakdown;
-    newSources[sourceIndex] = source;
+    newSources[sourceIndex] = recalculateBudgetSourceTotals(source);
     setEditedProposal({ ...editedProposal, budgetSources: newSources });
   };
 
@@ -847,22 +863,50 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     const newSources = [...editedProposal.budgetSources];
     const source = { ...newSources[sourceIndex] };
     const breakdown = { ...source.breakdown };
+    const removedItem = breakdown[category][itemIndex];
+    if (!removedItem) return;
     const categoryItems = breakdown[category].filter((_, i) => i !== itemIndex);
 
     breakdown[category] = categoryItems;
     source.breakdown = breakdown;
 
-    const catTotal = categoryItems.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
-    source[category] = `₱${catTotal.toLocaleString()}`;
-
-    const total =
-      breakdown.ps.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0) +
-      breakdown.mooe.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0) +
-      breakdown.co.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
-    source.total = `₱${total.toLocaleString()}`;
-
-    newSources[sourceIndex] = source;
+    newSources[sourceIndex] = recalculateBudgetSourceTotals(source);
     setEditedProposal({ ...editedProposal, budgetSources: newSources });
+    setBudgetUndoState({ kind: "line", sourceIndex, category, itemIndex, item: removedItem });
+  };
+
+  const handleUndoBudgetRemoval = () => {
+    if (!budgetUndoState) return;
+
+    setEditedProposal((prev) => {
+      if (!prev) return prev;
+
+      const budgetSources = [...prev.budgetSources];
+
+      if (budgetUndoState.kind === "source") {
+        const restoreIndex = Math.min(budgetUndoState.index, budgetSources.length);
+        budgetSources.splice(restoreIndex, 0, budgetUndoState.source);
+        return { ...prev, budgetSources };
+      }
+
+      const targetSource = budgetSources[budgetUndoState.sourceIndex];
+      if (!targetSource) return prev;
+
+      const breakdown = { ...targetSource.breakdown };
+      const categoryItems = [...breakdown[budgetUndoState.category]];
+      const restoreIndex = Math.min(budgetUndoState.itemIndex, categoryItems.length);
+      categoryItems.splice(restoreIndex, 0, budgetUndoState.item);
+      breakdown[budgetUndoState.category] = categoryItems;
+
+      budgetSources[budgetUndoState.sourceIndex] = recalculateBudgetSourceTotals({
+        ...targetSource,
+        breakdown,
+      });
+
+      return { ...prev, budgetSources };
+    });
+
+    setBudgetUndoState(null);
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -972,6 +1016,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
           });
           setNewFile(null);
           setNewWorkPlanFile(null);
+          setBudgetUndoState(null);
           setIsEditing(false);
           // onClose();  // Don't close, show summary
 
@@ -1020,6 +1065,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     setNewFile(null);
     setNewWorkPlanFile(null);
     setIsRevisionLibImportOpen(false);
+    setBudgetUndoState(null);
     setIsEditing(false);
   };
 
@@ -3168,6 +3214,38 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   {" "}
                   {/* Removed overflow-x-auto to prevent horizontal scrolling */}
                   <div className="space-y-6">
+                    {canEditBudget && budgetUndoState && (
+                      <div className="flex items-start justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 shadow-sm">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 text-sm font-semibold text-amber-900">
+                            <AlertTriangle className="h-4 w-4 shrink-0" />
+                            <span>{budgetUndoState.kind === "source" ? "Funding source removed" : "Budget item removed"}</span>
+                          </div>
+                          <p className="mt-1 truncate text-xs text-amber-800">
+                            {budgetUndoState.kind === "source"
+                              ? `${budgetUndoState.source.source?.trim() || "Untitled source"} was removed from this revision budget.`
+                              : `${budgetUndoState.item.item?.trim() || budgetUndoState.item.specifications?.trim() || "Untitled line item"} was removed from this revision budget.`}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={handleUndoBudgetRemoval}
+                            className="rounded-lg bg-amber-900 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-amber-950"
+                          >
+                            Undo
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setBudgetUndoState(null)}
+                            className="rounded-lg border border-amber-300 px-2 py-1.5 text-xs font-medium text-amber-900 transition-colors hover:bg-amber-100"
+                          >
+                            Dismiss
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
                     {currentData.budgetSources.map((budget, index) => (
                       <div key={index} className="bg-white border border-slate-200 rounded-xl overflow-hidden">
                         {/* Card Header: Source Name & Total */}
