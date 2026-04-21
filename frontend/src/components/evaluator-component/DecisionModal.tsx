@@ -14,6 +14,7 @@ interface DecisionModalProps {
   proposalTitle: string;
   onSubmit: (_status: "accepted" | "rejected" | "extension", _remarks: string, _newDeadline?: string) => void;
   isLoading?: boolean;
+  deadline?: string;
 }
 
 export default function DecisionModal({
@@ -22,6 +23,7 @@ export default function DecisionModal({
   proposalTitle,
   onSubmit,
   isLoading = false,
+  deadline,
 }: DecisionModalProps) {
   const [remarks, setRemarks] = useState("");
   const [newDeadline, setNewDeadline] = useState("");
@@ -161,7 +163,16 @@ export default function DecisionModal({
                 <input 
                   type="date"
                   value={newDeadline}
-                  min={(() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().split("T")[0]; })()}
+                  min={(() => { 
+                    if (deadline) {
+                      const d = new Date(deadline);
+                      d.setDate(d.getDate() + 2);
+                      return d.toISOString().split("T")[0];
+                    }
+                    const d = new Date(); 
+                    d.setDate(d.getDate() + 1); 
+                    return d.toISOString().split("T")[0]; 
+                  })()}
                   onChange={(e) => setNewDeadline(e.target.value)}
                   className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm transition-all"
                 />
