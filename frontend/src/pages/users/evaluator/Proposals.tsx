@@ -22,6 +22,7 @@ import {
 import { decisionEvaluatorToProposal, getEvaluatorProposals } from "../../../services/proposal.api";
 import { formatDate } from "../../../utils/date-formatter";
 import { getBudgetCategory } from "../../../utils/budget-category";
+import { getAssignmentProposalFileUrl, shouldReplaceEvaluatorProposal } from "../../../utils/evaluator-proposal";
 import Swal from "sweetalert2";
 import ProposalModal from "../../../components/evaluator-component/ProposalViewModal";
 import DecisionModal from "../../../components/evaluator-component/DecisionModal";
@@ -146,6 +147,7 @@ export default function Proposals() {
 
         return {
           id: proposalObj.id,
+          proposalVersionId: p.proposal_version_id ?? null,
           title: proposalObj.project_title || "Untitled",
           proponent: proponentName.trim(),
           gender: proposalObj.proponent_id?.sex || "N/A",
@@ -174,11 +176,9 @@ export default function Proposals() {
           endDate: proposalObj.plan_end_date || "N/A",
           budgetSources,
           budgetTotal: formatCurrency(totalBudgetVal),
-          projectFile: (proposalObj.proposal_version && proposalObj.proposal_version.length > 0)
-            ? proposalObj.proposal_version[proposalObj.proposal_version.length - 1].file_url
-            : (proposalObj.file_url || null),
+          projectFile: getAssignmentProposalFileUrl(proposalObj, p.proposal_version_id),
           extensionReason: p.remarks || null,
-          proponentInfoVisibility: proposalObj.proponent_info_visibility,
+          proponentInfoVisibility: p.proponent_info_visibility || proposalObj.proponent_info_visibility,
           tags: (proposalObj.proposal_tags || []).map((t: any) => t.tags?.name || t.tag?.name).filter(Boolean),
           raw: p,
           assignedDate: p.date_forwarded || p.created_at || proposalObj.created_at || null,
@@ -189,7 +189,8 @@ export default function Proposals() {
 
       const uniqueProposalsMap = new Map();
       mapped.forEach((p: any) => {
-        if (!uniqueProposalsMap.has(p.id)) {
+        const existing = uniqueProposalsMap.get(p.id);
+        if (!existing || shouldReplaceEvaluatorProposal(existing, p)) {
           uniqueProposalsMap.set(p.id, p);
         }
       });

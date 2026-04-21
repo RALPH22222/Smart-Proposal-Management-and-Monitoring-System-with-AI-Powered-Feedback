@@ -301,7 +301,7 @@ export class AdminService {
           deadline_at: oldRecord?.deadline_at || null,
           forwarded_by_rnd: oldRecord?.forwarded_by_rnd || null,
           comments_for_evaluators: oldRecord?.comments_for_evaluators || null,
-          proponent_info_visibility: oldRecord?.proponent_info_visibility ?? true,
+          proponent_info_visibility: oldRecord?.proponent_info_visibility ?? "both",
           anonymized_file_url: oldRecord?.anonymized_file_url || null,
         });
 

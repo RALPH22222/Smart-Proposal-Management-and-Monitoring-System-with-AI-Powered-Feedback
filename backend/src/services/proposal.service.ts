@@ -1586,6 +1586,8 @@ export class ProposalService {
       .select(
         `
         id,
+        created_at,
+        updated_at,
         status,
         deadline_at,
         comments_for_evaluators,
@@ -1612,7 +1614,11 @@ export class ProposalService {
         )
       `,
       )
-      .eq("evaluator_id", evaluator_id);
+      .eq("evaluator_id", evaluator_id)
+      // Keep the newest assignment/version first so evaluator views do not
+      // accidentally surface stale visibility settings or pre-redaction files.
+      .order("proposal_version_id", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false });
 
     if (search) {
       // filter on related table column

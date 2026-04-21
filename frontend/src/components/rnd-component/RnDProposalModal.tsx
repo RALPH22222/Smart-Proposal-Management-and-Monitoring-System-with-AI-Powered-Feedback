@@ -28,6 +28,7 @@ import { fetchUsersByRole, fetchRevisionSummary, fetchRejectionSummary, type Rev
 import Swal from 'sweetalert2';
 import { formatDate, formatDateTime } from '../../utils/date-formatter';
 import { redactFile } from '../../utils/file-redactor';
+import { buildRedactionTargets } from '../../utils/redaction-targets';
 import { getSignedFileUrl } from '../../utils/signed-url';
 
 // --- HELPER COMPONENT: Evaluator List Modal ---
@@ -483,20 +484,11 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
       return;
     }
 
-    // Build targets based on visibility setting
-    const targets: string[] = [];
-    const shouldHideName = showProponentInfo === 'agency' || showProponentInfo === 'none';
-    const shouldHideAgency = showProponentInfo === 'name' || showProponentInfo === 'none';
-
-    if (shouldHideName && proposal.proponent) {
-      targets.push(proposal.proponent);
-      // Also add individual name parts
-      const nameParts = proposal.proponent.split(' ').filter((p: string) => p.length > 2);
-      targets.push(...nameParts);
-    }
-    if (shouldHideAgency && proposal.agency && proposal.agency !== 'N/A') {
-      targets.push(proposal.agency);
-    }
+    const targets = buildRedactionTargets({
+      proponent: proposal.proponent,
+      agency: proposal.agency,
+      visibility: showProponentInfo,
+    });
 
     if (targets.length === 0) {
       setRedactionError("No redaction targets. Select 'Hide Name', 'Hide Agency', or 'Hide Both'.");
@@ -553,6 +545,11 @@ const RnDProposalModal: React.FC<RnDProposalModalProps> = ({
 
   const submitWithAnonymity = async () => {
     if (!proposal) return;
+
+    if (showProponentInfo !== 'both' && !redactedFileUrl) {
+      setRedactionError('Attach a redacted file before sending the proposal to evaluators.');
+      return;
+    }
 
     const decisionData: Decision & {
       proponentInfoVisibility?: 'name' | 'agency' | 'both' | 'none';

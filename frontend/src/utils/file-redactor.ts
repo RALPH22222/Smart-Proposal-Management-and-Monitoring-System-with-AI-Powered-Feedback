@@ -27,6 +27,7 @@ const DOCX_XML_PARTS = [
 function buildTargetRegex(targets: string[]): RegExp {
   const escaped = targets
     .filter((t) => t.length > 0)
+    .sort((a, b) => b.length - a.length)
     .map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
   if (escaped.length === 0) {
     return /(?!)/; // matches nothing

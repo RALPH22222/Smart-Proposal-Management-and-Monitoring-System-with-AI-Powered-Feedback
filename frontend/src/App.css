@@ -1,6 +1,13 @@
 @import "tailwindcss";
 
 @layer components {
+  /* App modals such as the R&D evaluator tracker use z-[9999]. Raise
+     SweetAlert above that stack so loader/confirm dialogs do not render
+     underneath an open modal. */
+  .swal2-container {
+    z-index: 10050 !important;
+  }
+
   /* Global generic animations used across public pages */
   @keyframes fadeInDown {
     from { opacity: 0; transform: translateY(-20px); }

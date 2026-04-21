@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { getEvaluatorProposals, getEvaluationScoresFromProposal } from "../../../services/proposal.api";
 import { formatDate } from "../../../utils/date-formatter";
 import { getBudgetCategory } from "../../../utils/budget-category";
+import { getAssignmentProposalFileUrl, shouldReplaceEvaluatorProposal } from "../../../utils/evaluator-proposal";
 import {
   FileText,
   Eye,
@@ -167,7 +168,7 @@ export default function ReviewedProposals() {
           submittedDate: p.created_at || null,
           budgetSources,
           budgetTotal: formatCurrency(totalBudgetVal),
-          projectFile: p.proposal_version?.[0]?.file_url || null,
+          projectFile: getAssignmentProposalFileUrl(p, item.proposal_version_id),
           ratings: evaluationScore ? {
             title: evaluationScore.title,
             budget: evaluationScore.budget,
@@ -176,7 +177,8 @@ export default function ReviewedProposals() {
           decision: item.status.charAt(0).toUpperCase() + item.status.slice(1),
           comment: evaluationScore?.comment || item.comments_for_evaluators || "No comment",
           evaluatorId: item.id,
-          proponentInfoVisibility: p.proponent_info_visibility,
+          proponentInfoVisibility: item.proponent_info_visibility || p.proponent_info_visibility,
+          raw: item,
         };
       });
 
@@ -187,7 +189,8 @@ export default function ReviewedProposals() {
       const uniqueProposalsMap = new Map();
       mapped.forEach((p: any) => {
         const key = `${p.id}::${p.proposalVersionId ?? 'null'}`;
-        if (!uniqueProposalsMap.has(key)) {
+        const existing = uniqueProposalsMap.get(key);
+        if (!existing || shouldReplaceEvaluatorProposal(existing, p)) {
           uniqueProposalsMap.set(key, p);
         }
       });

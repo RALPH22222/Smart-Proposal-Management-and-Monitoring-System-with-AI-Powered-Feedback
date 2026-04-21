@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { getEvaluatorProposals, submitEvaluation } from "../../../services/proposal.api";
 import { formatDate } from "../../../utils/date-formatter";
 import { getBudgetCategory } from "../../../utils/budget-category";
+import { getAssignmentProposalFileUrl, shouldReplaceEvaluatorProposal } from "../../../utils/evaluator-proposal";
 import { FileText, Search, ChevronLeft, ChevronRight, CheckCircle, User, Tag, FileClock, ScanSearch, CalendarDays} from "lucide-react";
 import ReviewModal from "../../../components/evaluator-component/ReviewModal";
 import PageLoader from "../../../components/shared/PageLoader";
@@ -94,6 +95,7 @@ export default function EndorsedProposals() {
 
         return {
           id: p.id,
+          proposalVersionId: item.proposal_version_id ?? null,
           title: p.project_title || "Untitled",
           reviewDeadline: item.deadline_at ? formatDate(item.deadline_at) : "N/A",
           proponent: `${proponent.first_name || ""} ${proponent.last_name || ""}`.trim() || "Unknown",
@@ -121,9 +123,10 @@ export default function EndorsedProposals() {
           submittedDate: p.created_at || null,
           budgetSources,
           budgetTotal: formatCurrency(totalBudgetVal),
-          projectFile: p.proposal_version?.[0]?.file_url || null,
+          projectFile: getAssignmentProposalFileUrl(p, item.proposal_version_id),
           evaluatorId: item.id,
-          proponentInfoVisibility: p.proponent_info_visibility,
+          proponentInfoVisibility: item.proponent_info_visibility || p.proponent_info_visibility,
+          raw: item,
         };
       });
 
@@ -131,7 +134,8 @@ export default function EndorsedProposals() {
       const uniqueProposalsMap = new Map();
       mapped.forEach((p: any) => {
         const key = String(p.id);
-        if (!uniqueProposalsMap.has(key)) {
+        const existing = uniqueProposalsMap.get(key);
+        if (!existing || shouldReplaceEvaluatorProposal(existing, p)) {
           uniqueProposalsMap.set(key, p);
         }
       });
