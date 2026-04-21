@@ -277,6 +277,8 @@ export const submitRevisedProposalSchema = z.object({
   work_plan_file_url: z.string().url("Invalid work plan file URL").optional(),
   // Optional classification / priority / discipline / sector updates for revision
   classification: z.string().max(100).optional(),
+  class_input: z.string().max(500).optional(),
+  // Legacy alias kept for backwards compatibility with older frontend bundles.
   classification_details: z.string().max(500).optional(),
   priority_areas: z.string().max(200).optional(),
   discipline: z.string().max(100).optional(),

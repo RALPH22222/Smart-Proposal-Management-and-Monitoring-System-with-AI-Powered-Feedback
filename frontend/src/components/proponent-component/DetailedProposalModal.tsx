@@ -1269,6 +1269,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
             comment: proposal.endorsementJustification
           }].filter(item => item.comment)
           : [];
+  const revisionFocusList = activeComments.map((item) => item.section).join(", ");
 
   return (
     <>
@@ -1464,6 +1465,34 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
 
           {/* --- BODY --- */}
           <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-6">
+            {isInRevisionMode && isEditing && !revisionChanges && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                <div className="flex items-start gap-3">
+                  <MessageSquare className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-700" />
+                  <div className="space-y-3">
+                    <div>
+                      <h3 className="text-sm font-bold text-amber-900">Before you submit this revision</h3>
+                      <p className="mt-1 text-xs leading-relaxed text-amber-800">
+                        Follow the feedback from R&amp;D, replace the proposal file, then submit the updated version.
+                        The <span className="font-semibold">Submit Revision</span> button stays disabled until a new DOST Form 1B file is attached.
+                      </p>
+                    </div>
+                    {revisionFocusList && (
+                      <div className="rounded-lg border border-amber-300 bg-white/70 px-3 py-2 text-xs text-amber-900">
+                        <span className="font-semibold">Feedback to review:</span> {revisionFocusList}
+                      </div>
+                    )}
+                    <ol className="ml-4 list-decimal space-y-1 text-xs leading-relaxed text-amber-900">
+                      <li>Read the revision comments above and note which sections need changes.</li>
+                      <li>Update only the affected details below: title, classification, schedule, budget, or attachments.</li>
+                      <li>Upload the revised DOST Form 1B in the Proposal Files section. This step is required.</li>
+                      <li>Re-upload DOST Form 3 only if your revised budget or timeline changed the work plan.</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {isFunded && (
               <div className="space-y-4">
 
@@ -1984,6 +2013,9 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                         <Upload className="w-5 h-5 text-slate-400" />
                         <span className="text-sm font-medium text-slate-600">
                           Click to upload revised DOST Form 1B
+                        </span>
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                          Required before submit
                         </span>
                         <input
                           type="file"
@@ -3470,9 +3502,16 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
               </div>
             )}
             <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-500 font-medium">
-                {isEditing ? (isInRevisionMode ? "Revision Edit Mode Active" : "Editing Mode Active") : "Read-Only View"}
-              </span>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-slate-500 font-medium">
+                  {isEditing ? (isInRevisionMode ? "Revision Edit Mode Active" : "Editing Mode Active") : "Read-Only View"}
+                </span>
+                {isEditing && isInRevisionMode && !newFile && canSubmitRevision && (
+                  <span className="text-xs text-amber-700">
+                    Upload a revised DOST Form 1B above to enable submission.
+                  </span>
+                )}
+              </div>
               <div className="flex gap-3">
                 {isEditing ? (
                   <>

@@ -289,6 +289,7 @@ export type SubmitRevisedProposalPayload = {
   // Optional classification / priority / discipline / sector updates for revision
   classification?: string;
   classificationDetails?: string;
+  classInput?: string;
   priorityAreas?: string;
   discipline?: string;
   sector?: string;
@@ -383,8 +384,9 @@ export const submitRevisedProposal = async (
   if (payload.classification) {
     body.classification = payload.classification;
   }
-  if (payload.classificationDetails) {
-    body.classification_details = payload.classificationDetails;
+  const classInput = payload.classInput ?? payload.classificationDetails;
+  if (classInput) {
+    body.class_input = classInput;
   }
   if (payload.priorityAreas) {
     body.priority_areas = payload.priorityAreas;

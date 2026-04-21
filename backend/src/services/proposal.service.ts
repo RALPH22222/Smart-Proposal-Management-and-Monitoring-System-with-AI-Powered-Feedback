@@ -2331,8 +2331,24 @@ export class ProposalService {
   }
 
   async submitRevision(input: Omit<SubmitRevisedProposalInput, "file_url">, fileUrl: string) {
-    const { proposal_id, proponent_id, project_title, revision_response, plan_start_date, plan_end_date, budget, work_plan_file_url, classification, classification_details, priority_areas, discipline, sector } =
+    const {
+      proposal_id,
+      proponent_id,
+      project_title,
+      revision_response,
+      plan_start_date,
+      plan_end_date,
+      budget,
+      work_plan_file_url,
+      classification,
+      class_input,
+      classification_details,
+      priority_areas,
+      discipline,
+      sector,
+    } =
       input;
+    const resolvedClassInput = class_input ?? classification_details;
 
     // 1. Verify proposal exists and belongs to proponent
     const { data: proposal, error: fetchError } = await this.db
@@ -2443,7 +2459,7 @@ export class ProposalService {
 
     // Optional classification / priority / discipline / sector updates
     if (classification) updatePayload.classification = classification;
-    if (classification_details) updatePayload.classification_details = classification_details;
+    if (resolvedClassInput) updatePayload.class_input = resolvedClassInput;
     if (priority_areas) {
       // Resolve priority name to ID and update the join table
       const { data: priorityRow } = await this.db
