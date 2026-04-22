@@ -19,7 +19,6 @@ import {
   CalendarDays,
   Download,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { type Proposal, type ProposalStatus } from '../../../types/InterfaceProposal';
 import { api } from '../../../utils/axios';
 import FundingActionModal from '../../../components/shared/FundingActionModal';
@@ -32,12 +31,9 @@ import {
   fetchRealignments,
   type RealignmentRecord,
 } from '../../../services/ProjectMonitoringApi';
-import { useAuthContext } from '../../../context/AuthContext';
 import { exportToCsv } from '../../../utils/csv-export';
 
 const FundingPage: React.FC = () => {
-  const navigate = useNavigate();
-  const { user } = useAuthContext();
   const [fundingProposals, setFundingProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
   // Phase 3 of LIB feature: third tab for budget realignment requests

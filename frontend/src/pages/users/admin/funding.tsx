@@ -19,7 +19,6 @@ import {
   CalendarDays,
   Download,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { type Proposal, type ProposalStatus } from '../../../types/InterfaceProposal';
 import { adminProposalApi } from '../../../services/AdminProposalApi/ProposalApi';
 import { api } from '../../../utils/axios';
@@ -36,7 +35,6 @@ import {
 import { exportToCsv } from '../../../utils/csv-export';
 
 const AdminFundingPage: React.FC = () => {
-  const navigate = useNavigate();
   const [fundingProposals, setFundingProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'pending' | 'archived' | 'realignments'>('pending');

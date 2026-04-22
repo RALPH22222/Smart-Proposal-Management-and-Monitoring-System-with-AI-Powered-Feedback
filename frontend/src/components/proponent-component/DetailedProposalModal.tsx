@@ -224,6 +224,8 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     return n + (s[(v - 20) % 10] || s[v] || s[0]);
   };
 
+  const isFundedForEffect = (proposal?.status || '').toLowerCase().trim() === 'funded';
+
   // Resolve funded project ID + lead — uses prop if available, otherwise fetches from /project/funded
   useEffect(() => {
     if (!isOpen || !isFundedForEffect || !proposal) {
