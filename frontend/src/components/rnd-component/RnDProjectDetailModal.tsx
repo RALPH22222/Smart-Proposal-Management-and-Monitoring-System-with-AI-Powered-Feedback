@@ -355,9 +355,12 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
     }
   };
 
-  const allQuartersVerified = details?.reports
-    ? details.reports.filter(r => r.status === 'Verified').length === 4
-    : false;
+  // "All quarters verified" must honor the project's duration, not hardcode 4.
+  // Multi-year (>4 quarters) and short projects (<4 quarters) otherwise silently
+  // hide the terminal-report card and certificate block. Mirrors the proponent-side
+  // check (`quarters.every(q => q.status === 'approved')`).
+  const allQuartersVerified = !!details?.reports?.length
+    && details.reports.every(r => r.status === 'Verified');
 
   const pendingFundRequests = fundRequests.filter(fr => fr.status === 'pending');
   const reviewedFundRequests = fundRequests.filter(fr => fr.status !== 'pending');
@@ -1235,8 +1238,12 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                         <div className="space-y-4">{details.reports.map(renderReportItem)}</div>
                       </div>
 
-                      {/* Terminal Report */}
-                      {allQuartersVerified && terminalReport && (
+                      {/* Terminal Report — always render when it exists.
+                          The backend only accepts a terminal-report submission after
+                          every applicable quarter is verified, so its mere presence
+                          means it should be reviewable here regardless of how the
+                          frontend computes `allQuartersVerified`. */}
+                      {terminalReport && (
                         <div className={`rounded-xl border p-5 ${terminalReport.status === 'verified' ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
                           <div className="flex justify-between items-center mb-3">
                             <h3 className="font-bold text-slate-700 flex items-center gap-2"><FileText className="w-5 h-5" /> Terminal Report</h3>
