@@ -19,6 +19,7 @@ import {
   CalendarDays,
   Download,
 } from 'lucide-react';
+import Swal from 'sweetalert2';
 import { type Proposal, type ProposalStatus } from '../../../types/InterfaceProposal';
 import { api } from '../../../utils/axios';
 import FundingActionModal from '../../../components/shared/FundingActionModal';
@@ -113,24 +114,48 @@ const FundingPage: React.FC = () => {
 
   const handleActionSubmit = async (data: FundingActionSubmitData): Promise<boolean> => {
     if (!activeProposal) return false;
-    try {
-      // Map frontend decisions to backend enum values
-      const decisionMap: Record<string, string> = {
-        Approve: 'funded',
-        Revise: 'revision_funding',
-        Reject: 'rejected_funding',
-      };
 
+    const decisionMap: Record<string, string> = {
+      Approve: 'funded',
+      Revise: 'revision_funding',
+      Reject: 'rejected_funding',
+    };
+    const successLabel: Record<string, string> = {
+      Approve: 'approved for funding',
+      Revise: 'marked for funding revision',
+      Reject: 'rejected at the funding stage',
+    };
+
+    Swal.fire({
+      title: 'Processing...',
+      text: 'Saving the funding decision.',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      didOpen: () => Swal.showLoading(),
+    });
+
+    try {
       await api.post('/proposal/endorse-for-funding', {
         proposal_id: activeProposal.id,
         decision: decisionMap[data.decision],
       });
 
       await loadFundingProposals();
+
+      await Swal.fire({
+        icon: 'success',
+        title: 'Decision saved',
+        text: `The proposal has been ${successLabel[data.decision]}.`,
+        confirmButtonColor: '#C8102E',
+        timer: 2000,
+        timerProgressBar: true,
+      });
+
       setActiveProposal(null);
       return true;
     } catch (error) {
       console.error(`Error processing ${data.decision} action:`, error);
+      Swal.close();
       throw error; // Re-throw to be caught by the modal
     }
   };
@@ -174,8 +199,10 @@ const FundingPage: React.FC = () => {
 
 
   // Pagination & Filtering
-  const pendingStatuses = ['Endorsed', 'Funding Revision'];
-  const archivedStatuses = ['Funded', 'Funding Rejected'];
+  // Funding Rejected stays in Pending so R&D/admin can still change the decision
+  // on it. Only fully Funded proposals move to Archive (terminal state).
+  const pendingStatuses = ['Endorsed', 'Funding Revision', 'Funding Rejected'];
+  const archivedStatuses = ['Funded'];
 
   const displayedProposals = fundingProposals.filter(p => {
     const term = searchTerm.toLowerCase();
@@ -479,7 +506,7 @@ const FundingPage: React.FC = () => {
                 <p className="text-slate-500 max-w-sm mx-auto">
                   {activeTab === 'pending'
                     ? 'Proposals will appear here once they are endorsed for funding by the R&D department.'
-                    : 'Projects that have been approved or rejected for funding will appear here.'}
+                    : 'Projects that have been approved for funding will appear here.'}
                 </p>
               </div>
             ) : (
