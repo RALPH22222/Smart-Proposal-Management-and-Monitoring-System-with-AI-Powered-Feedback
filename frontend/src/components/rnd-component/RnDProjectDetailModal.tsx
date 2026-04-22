@@ -1243,27 +1243,127 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                           every applicable quarter is verified, so its mere presence
                           means it should be reviewable here regardless of how the
                           frontend computes `allQuartersVerified`. */}
-                      {terminalReport && (
-                        <div className={`rounded-xl border p-5 ${terminalReport.status === 'verified' ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
-                          <div className="flex justify-between items-center mb-3">
+                      {terminalReport && (() => {
+                        const tr = terminalReport;
+                        const has6Ps =
+                          !!tr.outputs_publications || !!tr.outputs_patents_ip ||
+                          !!tr.outputs_products || !!tr.outputs_people ||
+                          !!tr.outputs_partnerships || !!tr.outputs_policy;
+                        const attachments = tr.report_file_url ?? [];
+                        const submitter = tr.submitted_by_user
+                          ? `${tr.submitted_by_user.first_name} ${tr.submitted_by_user.last_name}`
+                          : null;
+                        const verifier = tr.verified_by_user
+                          ? `${tr.verified_by_user.first_name} ${tr.verified_by_user.last_name}`
+                          : null;
+                        return (
+                        <div className={`rounded-xl border p-5 ${tr.status === 'verified' ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+                          <div className="flex justify-between items-center mb-4">
                             <h3 className="font-bold text-slate-700 flex items-center gap-2"><FileText className="w-5 h-5" /> Terminal Report</h3>
-                            <span className={`px-2 py-0.5 rounded text-xs font-bold ${terminalReport.status === 'verified' ? 'bg-green-200 text-green-800' : 'bg-amber-200 text-amber-800'}`}>{terminalReport.status === 'verified' ? 'Verified' : 'Pending Verification'}</span>
+                            <span className={`px-2 py-0.5 rounded text-xs font-bold ${tr.status === 'verified' ? 'bg-green-200 text-green-800' : tr.status === 'rejected' ? 'bg-red-200 text-red-800' : 'bg-amber-200 text-amber-800'}`}>{tr.status === 'verified' ? 'Verified' : tr.status === 'rejected' ? 'Returned for Revision' : 'Pending Verification'}</span>
                           </div>
-                          <div className="space-y-2 text-sm">
-                            {terminalReport.actual_start_date && <p><span className="font-medium">Duration:</span> {terminalReport.actual_start_date} to {terminalReport.actual_end_date}</p>}
-                            <p className="whitespace-pre-wrap text-xs bg-white/60 p-2 rounded-lg max-h-32 overflow-y-auto">{terminalReport.accomplishments}</p>
+
+                          {/* Submission metadata */}
+                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-600 mb-4">
+                            {submitter && (
+                              <span className="inline-flex items-center gap-1"><User className="w-3 h-3" /> Submitted by <span className="font-semibold">{submitter}</span></span>
+                            )}
+                            {tr.created_at && (
+                              <span className="inline-flex items-center gap-1"><Calendar className="w-3 h-3" /> {formatDate(tr.created_at)}</span>
+                            )}
+                            {tr.actual_start_date && tr.actual_end_date && (
+                              <span className="inline-flex items-center gap-1"><Clock className="w-3 h-3" /> Actual duration: {tr.actual_start_date} → {tr.actual_end_date}</span>
+                            )}
                           </div>
+
+                          {/* Full details (mirrors the proponent's submitted view) */}
+                          <div className="space-y-3 text-sm text-slate-700">
+                            <div>
+                              <p className="text-[11px] font-bold uppercase text-slate-500 mb-1">Accomplishments Against Objectives</p>
+                              <p className="whitespace-pre-wrap bg-white/80 rounded-lg p-3 border border-slate-200">{tr.accomplishments}</p>
+                            </div>
+
+                            {has6Ps && (
+                              <div>
+                                <p className="text-[11px] font-bold uppercase text-slate-500 mb-2">Outputs (6Ps)</p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                  {tr.outputs_publications && <div className="bg-white/80 rounded-lg p-2.5 border border-slate-200"><p className="text-[10px] font-bold uppercase text-slate-500">Publications</p><p className="mt-1 whitespace-pre-wrap">{tr.outputs_publications}</p></div>}
+                                  {tr.outputs_patents_ip && <div className="bg-white/80 rounded-lg p-2.5 border border-slate-200"><p className="text-[10px] font-bold uppercase text-slate-500">Patents / IP</p><p className="mt-1 whitespace-pre-wrap">{tr.outputs_patents_ip}</p></div>}
+                                  {tr.outputs_products && <div className="bg-white/80 rounded-lg p-2.5 border border-slate-200"><p className="text-[10px] font-bold uppercase text-slate-500">Products</p><p className="mt-1 whitespace-pre-wrap">{tr.outputs_products}</p></div>}
+                                  {tr.outputs_people && <div className="bg-white/80 rounded-lg p-2.5 border border-slate-200"><p className="text-[10px] font-bold uppercase text-slate-500">People Services</p><p className="mt-1 whitespace-pre-wrap">{tr.outputs_people}</p></div>}
+                                  {tr.outputs_partnerships && <div className="bg-white/80 rounded-lg p-2.5 border border-slate-200"><p className="text-[10px] font-bold uppercase text-slate-500">Places & Partnerships</p><p className="mt-1 whitespace-pre-wrap">{tr.outputs_partnerships}</p></div>}
+                                  {tr.outputs_policy && <div className="bg-white/80 rounded-lg p-2.5 border border-slate-200"><p className="text-[10px] font-bold uppercase text-slate-500">Policy</p><p className="mt-1 whitespace-pre-wrap">{tr.outputs_policy}</p></div>}
+                                </div>
+                              </div>
+                            )}
+
+                            {tr.problems_encountered && (
+                              <div>
+                                <p className="text-[11px] font-bold uppercase text-slate-500 mb-1">Problems Encountered</p>
+                                <p className="whitespace-pre-wrap bg-white/80 rounded-lg p-3 border border-slate-200">{tr.problems_encountered}</p>
+                              </div>
+                            )}
+
+                            {tr.suggested_solutions && (
+                              <div>
+                                <p className="text-[11px] font-bold uppercase text-slate-500 mb-1">Suggested Solutions</p>
+                                <p className="whitespace-pre-wrap bg-white/80 rounded-lg p-3 border border-slate-200">{tr.suggested_solutions}</p>
+                              </div>
+                            )}
+
+                            {tr.publications_list && (
+                              <div>
+                                <p className="text-[11px] font-bold uppercase text-slate-500 mb-1">Publications List</p>
+                                <p className="whitespace-pre-wrap bg-white/80 rounded-lg p-3 border border-slate-200">{tr.publications_list}</p>
+                              </div>
+                            )}
+
+                            {tr.surrendered_amount > 0 && (
+                              <div className="bg-white/80 rounded-lg p-3 border border-slate-200">
+                                <p className="text-[11px] font-bold uppercase text-slate-500 mb-1">Surrender Declaration</p>
+                                <p className="text-sm font-semibold text-purple-700">
+                                  ₱{Number(tr.surrendered_amount).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  <span className="text-[11px] font-normal text-slate-500 ml-2">(unexpended balance to be returned)</span>
+                                </p>
+                              </div>
+                            )}
+
+                            {attachments.length > 0 && (
+                              <div>
+                                <p className="text-[11px] font-bold uppercase text-slate-500 mb-1">Supporting Documents</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {attachments.map((url, i) => (
+                                    <button
+                                      key={i}
+                                      type="button"
+                                      onClick={() => openSignedUrl(url)}
+                                      className="inline-flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-lg border border-slate-200 text-xs text-blue-700 hover:border-blue-300 hover:bg-blue-50 transition-colors"
+                                    >
+                                      <Paperclip className="w-3 h-3" /> Attachment {i + 1}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {verifier && tr.status === 'verified' && tr.verified_at && (
+                            <p className="mt-4 text-[11px] text-green-700">
+                              Verified by <span className="font-semibold">{verifier}</span> on {formatDate(tr.verified_at)}
+                            </p>
+                          )}
+
                           {/* Previously-returned context on a resubmitted terminal report. */}
-                          {terminalReport.status === 'submitted' && terminalReport.review_note && (
-                            <div className="mt-3 flex items-start gap-2 text-xs bg-amber-50 p-3 rounded-lg border border-amber-200">
+                          {tr.status === 'submitted' && tr.review_note && (
+                            <div className="mt-4 flex items-start gap-2 text-xs bg-amber-50 p-3 rounded-lg border border-amber-200">
                               <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
                               <div className="flex-1 min-w-0">
                                 <p className="font-bold text-amber-800">Previously returned — resubmitted with revisions</p>
-                                <p className="text-amber-700 italic mt-0.5">"{terminalReport.review_note}"</p>
+                                <p className="text-amber-700 italic mt-0.5">"{tr.review_note}"</p>
                               </div>
                             </div>
                           )}
-                          {terminalReport.status === 'submitted' && (
+                          {tr.status === 'submitted' && (
                             <div className="mt-4 space-y-3">
                               {rejectingTerminal && (
                                 <div>
@@ -1282,7 +1382,7 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                                 {!rejectingTerminal ? (
                                   <>
                                     <button
-                                      onClick={async () => { setVerifyingTerminal(true); try { const updated = await verifyTerminalReport(terminalReport.id); setTerminalReport(updated); Swal.fire('Verified', 'Success', 'success'); } catch { Swal.fire('Error', 'Failed', 'error'); } finally { setVerifyingTerminal(false); } }}
+                                      onClick={async () => { setVerifyingTerminal(true); try { const updated = await verifyTerminalReport(tr.id); setTerminalReport(updated); Swal.fire('Verified', 'Success', 'success'); } catch { Swal.fire('Error', 'Failed', 'error'); } finally { setVerifyingTerminal(false); } }}
                                       disabled={verifyingTerminal}
                                       className="flex-1 py-2.5 bg-blue-600 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 shadow-md hover:bg-blue-700 transition-all disabled:opacity-50"
                                     >
@@ -1315,18 +1415,19 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                               </div>
                             </div>
                           )}
-                          {terminalReport.status === 'rejected' && (
+                          {tr.status === 'rejected' && (
                             <div className="mt-3 border border-red-200 bg-red-50 rounded-lg p-3 text-xs">
                               <p className="font-bold text-red-800 mb-1 flex items-center gap-1">
                                 <AlertTriangle className="w-3 h-3" /> Returned to proponent
                               </p>
-                              {terminalReport.review_note && (
-                                <p className="text-red-700 italic">"{terminalReport.review_note}"</p>
+                              {tr.review_note && (
+                                <p className="text-red-700 italic">"{tr.review_note}"</p>
                               )}
                             </div>
                           )}
                         </div>
-                      )}
+                        );
+                      })()}
 
                       {allQuartersVerified && !terminalReport && (
                         <div className="rounded-xl border bg-gray-50 p-5 text-center text-sm text-gray-500 italic">Waiting for terminal report submission.</div>
