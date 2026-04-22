@@ -171,6 +171,11 @@ export default function AcceptInvite() {
       return;
     }
 
+    if (!profilePicture) {
+      Swal.fire({ icon: 'warning', title: 'Profile Picture Required', text: 'Please upload a profile picture before completing registration.', confirmButtonColor: '#C8102E' });
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -303,8 +308,8 @@ export default function AcceptInvite() {
               Account Details
             </h3>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
+            <div className="flex flex-col md:flex-row gap-3">
+              <div className="flex-1">
                 <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
                 <input
                   type="text"
@@ -315,7 +320,20 @@ export default function AcceptInvite() {
                   className="block w-full rounded-xl border border-gray-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] hover:border-gray-300 transition-all duration-200 bg-white text-sm"
                 />
               </div>
-              <div>
+
+              <div className="w-full md:w-20">
+                <label className="block text-sm font-medium text-gray-700 mb-1 text-center">M.I.</label>
+                <input
+                  type="text"
+                  value={middleIni}
+                  onChange={(e) => setMiddleIni(e.target.value.toUpperCase().slice(0, 1))}
+                  placeholder="-"
+                  maxLength={1}
+                  className="block w-full text-center rounded-xl border border-gray-200 px-2 py-3 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] hover:border-gray-300 transition-all duration-200 bg-white text-sm"
+                />
+              </div>
+
+              <div className="flex-1">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
                 <input
                   type="text"
@@ -326,17 +344,6 @@ export default function AcceptInvite() {
                   className="block w-full rounded-xl border border-gray-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] hover:border-gray-300 transition-all duration-200 bg-white text-sm"
                 />
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Middle Initial</label>
-              <input
-                type="text"
-                value={middleIni}
-                onChange={(e) => setMiddleIni(e.target.value)}
-                placeholder="Optional"
-                className="block w-full rounded-xl border border-gray-200 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C8102E]/20 focus:border-[#C8102E] hover:border-gray-300 transition-all duration-200 bg-white text-sm"
-              />
             </div>
 
             <div>
@@ -504,10 +511,10 @@ export default function AcceptInvite() {
                   className="hidden"
                 />
               </div>
-              <div className="mt-6 bg-blue-50 text-blue-700 px-4 py-2 rounded-lg text-sm inline-block font-medium">
+              <div className={`mt-6 px-4 py-2 rounded-lg text-sm inline-block font-medium ${previewUrl ? 'bg-blue-50 text-blue-700' : 'bg-red-50 text-[#C8102E]'}`}>
                 {previewUrl
                   ? "Looking good! Click 'Complete Registration' to finish."
-                  : "Profile photo is optional. Click 'Complete Registration' to finish."}
+                  : "Profile photo is required. Please upload one to finish."}
               </div>
             </div>
           </div>
