@@ -11,6 +11,10 @@ export interface CertificateData {
   totalBudget: number;
   issuedAt: string;
   issuedByName: string;
+  // Optional. When present and non-empty, an "in collaboration with
+  // Co-Project Leader(s):" block is drawn beneath the project leader.
+  // When empty/undefined, the layout is identical to single-lead projects.
+  coLeads?: string[];
 }
 
 // Embed a PNG image from a URL/import path
@@ -177,6 +181,43 @@ export async function generateCertificatePDF(data: CertificateData): Promise<voi
   drawCenteredText(data.projectLeader, y, timesRomanBold, 16, darkGray);
   y -= 16;
   drawCenteredText(data.department, y, timesRomanItalic, 11, medGray);
+
+  // Co-Project Leader(s) — only drawn when present, so single-lead layout is unchanged.
+  const coLeads = (data.coLeads ?? []).filter((n) => n && n.trim().length > 0);
+  if (coLeads.length > 0) {
+    y -= 20;
+    const label = coLeads.length === 1
+      ? "in collaboration with Co-Project Leader:"
+      : "in collaboration with Co-Project Leaders:";
+    drawCenteredText(label, y, timesRomanItalic, 11, medGray);
+
+    // Wrap comma-separated names to fit within maxTitleWidth (also used for the title).
+    const namesFullLine = coLeads.join(", ");
+    const nameSize = 12;
+    const lineMax = maxTitleWidth;
+    const nameLines: string[] = [];
+    if (timesRoman.widthOfTextAtSize(namesFullLine, nameSize) <= lineMax) {
+      nameLines.push(namesFullLine);
+    } else {
+      let current = "";
+      for (let i = 0; i < coLeads.length; i++) {
+        const token = i === coLeads.length - 1 ? coLeads[i] : `${coLeads[i]},`;
+        const candidate = current ? `${current} ${token}` : token;
+        if (timesRoman.widthOfTextAtSize(candidate, nameSize) > lineMax) {
+          if (current) nameLines.push(current);
+          current = token;
+        } else {
+          current = candidate;
+        }
+      }
+      if (current) nameLines.push(current);
+    }
+
+    for (const line of nameLines) {
+      y -= 15;
+      drawCenteredText(line, y, timesRoman, nameSize, darkGray);
+    }
+  }
 
   // Project details
   y -= 28;

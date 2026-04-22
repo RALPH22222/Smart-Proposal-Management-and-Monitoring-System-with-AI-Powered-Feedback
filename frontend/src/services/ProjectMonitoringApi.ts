@@ -165,6 +165,21 @@ export interface ApiProjectDetail {
     photo_profile_url?: string;
   };
   project_reports: ApiProjectReport[];
+  // Flattened from project_members where role='co_lead' AND status='active'.
+  // Non-active invites (pending/declined/inactive) are excluded server-side.
+  co_leads: {
+    id: string | null;
+    first_name: string | null;
+    last_name: string | null;
+    photo_profile_url: string | null;
+  }[];
+}
+
+export interface ProjectCoLead {
+  id: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  photoProfileUrl: string | null;
 }
 
 export interface ApiProjectReport {
@@ -402,6 +417,7 @@ export interface ProjectDetailData {
   totalBudget: number;
   certificateIssuedAt: string | null;
   certificateIssuedByName: string | null;
+  coLeads: ProjectCoLead[];
 }
 
 /**
@@ -533,11 +549,19 @@ export function buildDisplayReports(
   const issuer = detail.certificate_issuer;
   const issuerName = issuer ? `${issuer.first_name || ""} ${issuer.last_name || ""}`.trim() : null;
 
+  const coLeads: ProjectCoLead[] = (detail.co_leads ?? []).map((c) => ({
+    id: c.id,
+    firstName: c.first_name,
+    lastName: c.last_name,
+    photoProfileUrl: c.photo_profile_url,
+  }));
+
   return {
     reports,
     totalBudget,
     certificateIssuedAt: detail.certificate_issued_at || null,
     certificateIssuedByName: issuerName,
+    coLeads,
   };
 }
 

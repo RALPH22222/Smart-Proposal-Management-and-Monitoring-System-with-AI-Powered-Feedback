@@ -119,6 +119,7 @@ const MonitoringPage: React.FC<{ viewRole?: string }> = ({ viewRole = 'proponent
   const [quarters, setQuarters] = useState<QuarterData[]>([]);
   const [totalBudget, setTotalBudget] = useState(0);
   const [certificateInfo, setCertificateInfo] = useState<{ issuedAt: string | null; issuedByName: string | null }>({ issuedAt: null, issuedByName: null });
+  const [coLeads, setCoLeads] = useState<{ id: string | null; firstName: string | null; lastName: string | null; photoProfileUrl: string | null }[]>([]);
   const [rawProjectDetail, setRawProjectDetail] = useState<any>(null);
 
   // Fund request form — checkbox-based selection from the active LIB.
@@ -335,6 +336,7 @@ const MonitoringPage: React.FC<{ viewRole?: string }> = ({ viewRole = 'proponent
       const displayData = buildDisplayReports(detail, user?.id || '');
       setTotalBudget(displayData.totalBudget);
       setCertificateInfo({ issuedAt: displayData.certificateIssuedAt, issuedByName: displayData.certificateIssuedByName });
+      setCoLeads(displayData.coLeads);
       setRawProjectDetail(detail);
 
       // Phase 2A: fund requests are keyed by (year_number, quarterly_report) — two projects
@@ -910,6 +912,9 @@ const MonitoringPage: React.FC<{ viewRole?: string }> = ({ viewRole = 'proponent
   const handleDownloadCertificate = async () => {
     if (!activeProject) return;
     try {
+      const coLeadNames = coLeads
+        .map((c) => `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim())
+        .filter((n) => n.length > 0);
       await generateCertificatePDF({
         projectTitle: activeProject.title,
         programTitle: rawProjectDetail?.proposal?.program_title || undefined,
@@ -920,6 +925,7 @@ const MonitoringPage: React.FC<{ viewRole?: string }> = ({ viewRole = 'proponent
         totalBudget: totalBudget,
         issuedAt: certificateInfo.issuedAt || new Date().toISOString(),
         issuedByName: certificateInfo.issuedByName || 'R&D Office',
+        coLeads: coLeadNames,
       });
     } catch (err) {
       console.error('Failed to generate certificate PDF:', err);
@@ -1185,6 +1191,18 @@ const MonitoringPage: React.FC<{ viewRole?: string }> = ({ viewRole = 'proponent
                           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-lg px-4 py-2 border border-white/10 text-sm text-blue-100">
                             <Users className="w-4 h-4 text-yellow-400" />
                             <span>Issued by: {certificateInfo.issuedByName}</span>
+                          </div>
+                        )}
+                        {coLeads.length > 0 && (
+                          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-lg px-4 py-2 border border-white/10 text-sm text-blue-100">
+                            <Users className="w-4 h-4 text-yellow-400" />
+                            <span>
+                              {coLeads.length === 1 ? 'Co-Lead' : 'Co-Leads'}:{' '}
+                              {coLeads
+                                .map((c) => `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim())
+                                .filter((n) => n.length > 0)
+                                .join(', ')}
+                            </span>
                           </div>
                         )}
                         <button

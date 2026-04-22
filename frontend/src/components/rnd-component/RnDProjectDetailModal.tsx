@@ -145,7 +145,7 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
       fetchTerminalReport(project.backendId).then(setTerminalReport).catch(() => setTerminalReport(null));
     } catch (err) {
       console.error('Error loading project details:', err);
-      setDetails({ reports: [], totalBudget: 0, certificateIssuedAt: null, certificateIssuedByName: null });
+      setDetails({ reports: [], totalBudget: 0, certificateIssuedAt: null, certificateIssuedByName: null, coLeads: [] });
     } finally {
       setDetailLoading(false);
     }
@@ -307,6 +307,9 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
   const handleDownloadCertificate = async () => {
     if (!project || !details) return;
     try {
+      const coLeadNames = (details.coLeads ?? [])
+        .map((c) => `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim())
+        .filter((n) => n.length > 0);
       await generateCertificatePDF({
         projectTitle: project.title,
         programTitle: rawDetail?.proposal?.program_title || undefined,
@@ -317,6 +320,7 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
         totalBudget: totalBudget,
         issuedAt: details.certificateIssuedAt || new Date().toISOString(),
         issuedByName: details.certificateIssuedByName || 'R&D Office',
+        coLeads: coLeadNames,
       });
     } catch (err) {
       console.error('Failed to generate certificate PDF:', err);
@@ -435,8 +439,8 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
             <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
               <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 overflow-hidden border-2 border-white shadow-sm">
                 {project.proponentProfilePicture ? (
-                  <SecureImage 
-                    src={project.proponentProfilePicture} 
+                  <SecureImage
+                    src={project.proponentProfilePicture}
                     alt={project.principalInvestigator}
                     className="w-full h-full object-cover"
                   />
@@ -449,19 +453,32 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                 <p className="text-xs text-slate-500">Project Leader</p>
               </div>
             </div>
-            {project.coProponent ? (
-              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
-                <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
-                  <Users className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-slate-800">{project.coProponent}</p>
-                  <p className="text-xs text-slate-500">Co-Proponent</p>
-                </div>
-              </div>
+            {details?.coLeads && details.coLeads.length > 0 ? (
+              details.coLeads.map((cl) => {
+                const fullName = `${cl.firstName ?? ''} ${cl.lastName ?? ''}`.trim() || 'Co-Lead';
+                return (
+                  <div key={cl.id ?? fullName} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                    <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 overflow-hidden border-2 border-white shadow-sm">
+                      {cl.photoProfileUrl ? (
+                        <SecureImage
+                          src={cl.photoProfileUrl}
+                          alt={fullName}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Users className="w-5 h-5" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-800">{fullName}</p>
+                      <p className="text-xs text-slate-500">Co-Lead</p>
+                    </div>
+                  </div>
+                );
+              })
             ) : (
               <div className="flex items-center justify-center p-3 bg-slate-50 rounded-lg border border-slate-100 border-dashed text-slate-400 text-sm italic">
-                No Co-Proponent Assigned
+                No Co-Leads Assigned
               </div>
             )}
           </div>

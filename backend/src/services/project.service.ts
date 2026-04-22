@@ -378,6 +378,11 @@ export class ProjectService {
           submitted_by_proponent_id,
           created_at,
           project_expenses (id, expenses, desription, fund_request_item_id, approved_amount, created_at)
+        ),
+        project_members (
+          role,
+          status,
+          user:users!user_id (id, first_name, last_name, photo_profile_url)
         )
       `
       )
@@ -399,7 +404,21 @@ export class ProjectService {
       certificate_issuer = issuer || null;
     }
 
-    return { data: { ...data, certificate_issuer }, error: null };
+    // Flatten co_leads (role='co_lead', status='active') for detail consumers. Mirrors
+    // the shaping done by getFundedProjects so both the list card and the detail modal
+    // see the same "who currently has an active co-lead seat on this project" answer.
+    const members: any[] = (data as any).project_members || [];
+    const co_leads = members
+      .filter((m: any) => m.role === "co_lead" && m.status === "active")
+      .map((m: any) => ({
+        id: m.user?.id ?? null,
+        first_name: m.user?.first_name ?? null,
+        last_name: m.user?.last_name ?? null,
+        photo_profile_url: m.user?.photo_profile_url ?? null,
+      }));
+
+    const { project_members: _pm, ...rest } = data as any;
+    return { data: { ...rest, certificate_issuer, co_leads }, error: null };
   }
 
   /**
