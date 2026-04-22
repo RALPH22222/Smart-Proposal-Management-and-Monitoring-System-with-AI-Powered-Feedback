@@ -23,6 +23,22 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   }
 
   const projectService = new ProjectService(supabase);
+  const access = await projectService.assertCanAccessFundedProject(
+    auth.userId,
+    auth.roles,
+    fundedProjectId,
+  );
+  if (access.error) {
+    const code = (access.error as any).code;
+    return {
+      statusCode: code === "PROJECT_NOT_FOUND" ? 404 : code === "FORBIDDEN" ? 403 : 500,
+      body: JSON.stringify({
+        message: (access.error as any).message || "Internal server error.",
+        code,
+      }),
+    };
+  }
+
   const { data, error } = await projectService.getActiveBudgetVersion(fundedProjectId);
 
   if (error) {

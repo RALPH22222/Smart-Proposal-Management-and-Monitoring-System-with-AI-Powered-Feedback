@@ -54,30 +54,8 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     }
   }
 
-  // DOST compliance gate — same rule as quarterly report. See submit-quarterly-report.ts
-  // for rationale. Terminal report is the final progress report so the prerequisite
-  // documents must be on file before it can be filed.
-  const { data: complianceDocs } = await supabase
-    .from("funded_projects")
-    .select("moa_file_url, agency_certification_file_url")
-    .eq("id", result.data.funded_project_id)
-    .single();
-
-  const missing: string[] = [];
-  if (!complianceDocs?.moa_file_url) missing.push("Memorandum of Agreement (DOST Form 5)");
-  if (!complianceDocs?.agency_certification_file_url) missing.push("Agency Certification (DOST Form 4)");
-  if (missing.length > 0) {
-    return {
-      statusCode: 412,
-      body: JSON.stringify({
-        message: `Cannot submit terminal report. The following document(s) must be uploaded first: ${missing.join(", ")}.`,
-        code: "MISSING_COMPLIANCE_DOCS",
-        missing,
-      }),
-    };
-  }
-
   const projectService = new ProjectService(supabase);
+
   const { data, error } = await projectService.submitTerminalReport({
     ...result.data,
     submitted_by: auth.userId,
@@ -89,7 +67,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     // Map known business-rule errors to 4xx so they don't surface as 500s.
     let statusCode = 500;
     if (code === "TERMINAL_REPORT_EXISTS") statusCode = 409;
-    else if (code === "SURRENDER_EXCEEDS_BALANCE") statusCode = 400;
+    else if (code === "SURRENDER_EXCEEDS_BALANCE" || code === "INCOMPLETE_REPORTS") statusCode = 400;
     return {
       statusCode,
       body: JSON.stringify({

@@ -61,32 +61,36 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
     }
   }
 
-  // DOST compliance gate: MOA (Form 5) + Agency Certification (Form 4) must be uploaded
-  // before any quarterly report can be submitted. This enforces the real-world DOST rule
-  // that the agreement + funding certification are prerequisites for progress reporting.
-  // Backend guard is authoritative — the frontend banner / disabled button is UX; this
-  // catches anyone hitting the endpoint directly or with a stale client.
-  const { data: complianceDocs } = await supabase
-    .from("funded_projects")
-    .select("moa_file_url, agency_certification_file_url")
-    .eq("id", result.data.funded_project_id)
-    .single();
+  const projectService = new ProjectService(supabase);
 
-  const missing: string[] = [];
-  if (!complianceDocs?.moa_file_url) missing.push("Memorandum of Agreement (DOST Form 5)");
-  if (!complianceDocs?.agency_certification_file_url) missing.push("Agency Certification (DOST Form 4)");
-  if (missing.length > 0) {
+  // DOST compliance gate: both Form 4 and Form 5 must be VERIFIED by R&D before
+  // any progress reporting can begin. The frontend banner is UX only; this check is
+  // authoritative for direct API callers and stale clients.
+  const compliance = await projectService.getComplianceVerificationBlockers(
+    result.data.funded_project_id,
+  );
+  if (compliance.error) {
+    const code = (compliance.error as any).code;
     return {
-      statusCode: 412, // Precondition Failed — prerequisite docs missing
+      statusCode: code === "PROJECT_NOT_FOUND" ? 404 : 500,
       body: JSON.stringify({
-        message: `Cannot submit quarterly report. The following document(s) must be uploaded first: ${missing.join(", ")}.`,
-        code: "MISSING_COMPLIANCE_DOCS",
-        missing,
+        message: (compliance.error as any).message || "Internal server error.",
+        code,
       }),
     };
   }
 
-  const projectService = new ProjectService(supabase);
+  if ((compliance.data || []).length > 0) {
+    return {
+      statusCode: 412, // Precondition Failed — prerequisite docs missing
+      body: JSON.stringify({
+        message: `Cannot submit quarterly report. The following document(s) must be verified by R&D first: ${(compliance.data || []).join("; ")}.`,
+        code: "COMPLIANCE_DOCS_NOT_VERIFIED",
+        missing: compliance.data,
+      }),
+    };
+  }
+
   const { data, error, isResubmission } = await projectService.submitQuarterlyReport({
     ...result.data,
     submitted_by_proponent_id: submitterId,
@@ -102,7 +106,7 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
       };
     }
 
-    if ((error as any).code === "FUND_REQUEST_NOT_APPROVED" || (error as any).code === "PREVIOUS_QUARTER_MISSING") {
+    if ((error as any).code === "FUND_REQUEST_NOT_APPROVED" || (error as any).code === "PREVIOUS_PERIOD_MISSING") {
       return {
         statusCode: 403,
         body: JSON.stringify({ message: error.message, code: (error as any).code }),

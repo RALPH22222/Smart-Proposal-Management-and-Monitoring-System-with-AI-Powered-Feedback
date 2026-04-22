@@ -15,14 +15,9 @@ import {
 interface Props {
   fundedProjectId: number;
   allQuartersVerified: boolean;
-  // When truthy, submit is blocked because the project is missing DOST Form 4 / Form 5.
-  // The parent passes the human-readable list; we use it for the tooltip. The parent
-  // also renders the full banner above the quarters, so we only need a short inline hint.
-  missingComplianceDocs?: string[];
 }
 
-export default function TerminalReportSection({ fundedProjectId, allQuartersVerified, missingComplianceDocs = [] }: Props) {
-  const complianceBlocked = missingComplianceDocs.length > 0;
+export default function TerminalReportSection({ fundedProjectId, allQuartersVerified }: Props) {
   const [terminalReport, setTerminalReport] = useState<ApiTerminalReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -82,6 +77,15 @@ export default function TerminalReportSection({ fundedProjectId, allQuartersVeri
     : 0;
   const surrenderExceedsUnexpended =
     !!budgetSummary && surrenderValue > unexpendedFromSummary + 0.01;
+  const persistedSurrenderValue = Number(terminalReport?.surrendered_amount ?? 0) || 0;
+  const persistedReconciliationGap =
+    budgetSummary && terminalReport
+      ? budgetSummary.total_budget - (budgetSummary.total_actual_spent + persistedSurrenderValue)
+      : null;
+  const verifiedCertificateBlocked =
+    terminalReport?.status === 'verified' &&
+    typeof persistedReconciliationGap === 'number' &&
+    persistedReconciliationGap > 0.01;
 
   const handleFileAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newFiles = Array.from(e.target.files || []);
@@ -217,7 +221,6 @@ export default function TerminalReportSection({ fundedProjectId, allQuartersVeri
             )}
             <button
               onClick={openEditForm}
-              disabled={complianceBlocked}
               className="mt-3 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white font-bold rounded-lg text-xs flex items-center gap-2"
             >
               <FileText className="w-3.5 h-3.5" /> Edit and Resubmit
@@ -261,9 +264,17 @@ export default function TerminalReportSection({ fundedProjectId, allQuartersVeri
         </div>
 
         {isVerified && terminalReport.verified_by_user && (
-          <p className="mt-4 text-xs text-green-700">
-            Verified by {terminalReport.verified_by_user.first_name} {terminalReport.verified_by_user.last_name} on {new Date(terminalReport.verified_at!).toLocaleDateString()}
-          </p>
+          <>
+            {verifiedCertificateBlocked && (
+              <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                Terminal report verified, but the completion certificate is still blocked until the remaining
+                {' '}₱{persistedReconciliationGap!.toFixed(2)} budget gap is reconciled.
+              </div>
+            )}
+            <p className="mt-4 text-xs text-green-700">
+              Verified by {terminalReport.verified_by_user.first_name} {terminalReport.verified_by_user.last_name} on {new Date(terminalReport.verified_at!).toLocaleDateString()}
+            </p>
+          </>
         )}
       </div>
     );
@@ -275,18 +286,16 @@ export default function TerminalReportSection({ fundedProjectId, allQuartersVeri
       <div className="rounded-2xl border-2 border-blue-200 bg-blue-50 p-6">
         <div className="flex items-center gap-3 mb-3">
           <FileText className="w-6 h-6 text-blue-600" />
-          <h3 className="text-lg font-bold text-gray-800">Terminal Report Required</h3>
+          <h3 className="text-lg font-bold text-gray-800">Final Project Completion Report Required</h3>
         </div>
         <p className="text-sm text-gray-600 mb-4">
           All quarterly reports have been verified. Please submit a terminal report (DOST Form 9A) before a completion certificate can be issued.
         </p>
         <button
           onClick={() => setShowForm(true)}
-          disabled={complianceBlocked}
-          title={complianceBlocked ? `Upload required first: ${missingComplianceDocs.join(', ')}` : undefined}
           className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm"
         >
-          {complianceBlocked ? 'Submit Terminal Report (DOST docs required)' : 'Submit Terminal Report'}
+          Submit Terminal Report
         </button>
       </div>
     );
@@ -296,9 +305,15 @@ export default function TerminalReportSection({ fundedProjectId, allQuartersVeri
   return (
     <div className="rounded-2xl border-2 border-blue-200 bg-white p-6">
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <FileText className="w-6 h-6 text-blue-600" />
-          <h3 className="text-lg font-bold text-gray-800">Terminal Report (DOST Form 9A)</h3>
+        <div>
+          <div className="flex items-center gap-3">
+            <FileText className="w-6 h-6 text-blue-600" />
+            <h3 className="text-lg font-bold text-gray-800">Final Project Completion Report</h3>
+          </div>
+          <p className="mt-2 text-sm text-gray-600">
+            Use this closeout form to summarize the completed work, final outputs, issues encountered,
+            supporting evidence, and budget reconciliation for DOST Form 9A.
+          </p>
         </div>
         <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600">
           <X className="w-5 h-5" />
@@ -307,20 +322,28 @@ export default function TerminalReportSection({ fundedProjectId, allQuartersVeri
 
       <div className="space-y-5">
         {/* Actual Duration */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Actual Start Date</label>
-            <input type="date" value={actualStartDate} onChange={(e) => setActualStartDate(e.target.value)} className="w-full p-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
-          </div>
-          <div>
-            <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Actual End Date</label>
-            <input type="date" value={actualEndDate} onChange={(e) => setActualEndDate(e.target.value)} className="w-full p-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+        <div>
+          <p className="mb-3 text-[11px] leading-relaxed text-gray-500">
+            Enter the real project start and end dates if implementation changed from the original plan.
+          </p>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Actual Start Date</label>
+              <input type="date" value={actualStartDate} onChange={(e) => setActualStartDate(e.target.value)} className="w-full p-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Actual End Date</label>
+              <input type="date" value={actualEndDate} onChange={(e) => setActualEndDate(e.target.value)} className="w-full p-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+            </div>
           </div>
         </div>
 
         {/* Accomplishments */}
         <div>
           <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Accomplishments Against Objectives <span className="text-red-500">*</span></label>
+          <p className="mb-2 text-[11px] leading-relaxed text-gray-500">
+            Give the panel a concise final summary of what the project actually achieved compared with its stated objectives.
+          </p>
           <textarea value={accomplishments} onChange={(e) => setAccomplishments(e.target.value)} placeholder="Describe accomplishments relative to stated objectives..." className="w-full p-3 border border-gray-300 rounded-xl text-sm h-28 resize-none focus:ring-2 focus:ring-blue-500 outline-none" />
           <p className={`text-[11px] mt-1 ${accomplishments.trim().length < 10 ? 'text-amber-600' : 'text-gray-500'}`}>
             {accomplishments.trim().length < 10
@@ -331,7 +354,10 @@ export default function TerminalReportSection({ fundedProjectId, allQuartersVeri
 
         {/* 6Ps Outputs */}
         <div>
-          <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Outputs — 6Ps (DOST Impact Metrics)</label>
+          <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Final Outputs — 6Ps (DOST Impact Metrics)</label>
+          <p className="mb-3 text-[11px] leading-relaxed text-gray-500">
+            Fill in only the output categories that apply. This section captures the concrete end-results of the project, such as publications, products, partnerships, or policy contributions.
+          </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-gray-500 mb-1">Publications</label>
@@ -364,10 +390,16 @@ export default function TerminalReportSection({ fundedProjectId, allQuartersVeri
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Problems Encountered</label>
+            <p className="mb-2 text-[11px] leading-relaxed text-gray-500">
+              Summarize the major implementation issues, delays, or constraints that affected project delivery.
+            </p>
             <textarea value={problemsEncountered} onChange={(e) => setProblemsEncountered(e.target.value)} placeholder="Challenges during implementation..." className="w-full p-2.5 border border-gray-300 rounded-xl text-sm h-24 resize-none focus:ring-2 focus:ring-blue-500 outline-none" />
           </div>
           <div>
             <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Suggested Solutions</label>
+            <p className="mb-2 text-[11px] leading-relaxed text-gray-500">
+              Note how the issues were addressed or what you recommend for future implementation.
+            </p>
             <textarea value={suggestedSolutions} onChange={(e) => setSuggestedSolutions(e.target.value)} placeholder="Recommendations for future..." className="w-full p-2.5 border border-gray-300 rounded-xl text-sm h-24 resize-none focus:ring-2 focus:ring-blue-500 outline-none" />
           </div>
         </div>
@@ -375,6 +407,9 @@ export default function TerminalReportSection({ fundedProjectId, allQuartersVeri
         {/* Publications List */}
         <div>
           <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Publications List</label>
+          <p className="mb-2 text-[11px] leading-relaxed text-gray-500">
+            Provide full citations or a clean list of output references if the project produced publishable materials.
+          </p>
           <textarea value={publicationsList} onChange={(e) => setPublicationsList(e.target.value)} placeholder="List all resulting publications with full citations..." className="w-full p-2.5 border border-gray-300 rounded-xl text-sm h-20 resize-none focus:ring-2 focus:ring-blue-500 outline-none" />
         </div>
 
@@ -475,6 +510,9 @@ export default function TerminalReportSection({ fundedProjectId, allQuartersVeri
         {/* File Upload */}
         <div>
           <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Supporting Documents</label>
+          <p className="mb-2 text-[11px] leading-relaxed text-gray-500">
+            Attach proof files for the final report, such as signed forms, summary documents, photos, publications, or other completion evidence.
+          </p>
           <div className="flex items-center gap-2 flex-wrap">
             {files.map((f, i) => (
               <span key={i} className="flex items-center gap-1 bg-blue-50 text-blue-700 text-xs px-3 py-1.5 rounded-full">
@@ -492,21 +530,15 @@ export default function TerminalReportSection({ fundedProjectId, allQuartersVeri
         {/* Submit — also blocked when MOA / Agency Cert missing. */}
         <button
           onClick={handleSubmit}
-          disabled={submitting || accomplishments.trim().length < 10 || complianceBlocked || surrenderExceedsUnexpended}
+          disabled={submitting || accomplishments.trim().length < 10 || surrenderExceedsUnexpended}
           title={
-            complianceBlocked
-              ? `Upload required first: ${missingComplianceDocs.join(', ')}`
-              : surrenderExceedsUnexpended
-                ? `Surrender (₱${surrenderValue.toFixed(2)}) exceeds the unexpended balance (₱${unexpendedFromSummary.toFixed(2)})`
-                : undefined
+            surrenderExceedsUnexpended
+              ? `Surrender (₱${surrenderValue.toFixed(2)}) exceeds the unexpended balance (₱${unexpendedFromSummary.toFixed(2)})`
+              : undefined
           }
           className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg disabled:bg-gray-400 disabled:cursor-not-allowed text-sm"
         >
-          {submitting
-            ? 'Submitting...'
-            : complianceBlocked
-              ? 'Submit Terminal Report (DOST docs required)'
-              : 'Submit Terminal Report'}
+          {submitting ? 'Submitting...' : 'Submit Terminal Report'}
         </button>
       </div>
     </div>

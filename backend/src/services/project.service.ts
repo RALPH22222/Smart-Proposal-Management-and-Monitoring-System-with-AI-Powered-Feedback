@@ -63,6 +63,161 @@ export class ProjectService {
   }
 
   /**
+   * Shared read-access gate for monitoring data.
+   * - Admins can read any project.
+   * - R&D users can read projects explicitly assigned to them.
+   * - Proponents can read projects they lead or actively belong to.
+   */
+  async assertCanAccessFundedProject(userId: string, roles: string[], fundedProjectId: number) {
+    const { data: project, error: projectError } = await this.db
+      .from("funded_projects")
+      .select("id, proposal_id, project_lead_id")
+      .eq("id", fundedProjectId)
+      .maybeSingle();
+
+    if (projectError) {
+      return { data: null, error: projectError };
+    }
+
+    if (!project) {
+      return {
+        data: null,
+        error: {
+          message: "Funded project not found.",
+          code: "PROJECT_NOT_FOUND",
+        },
+      };
+    }
+
+    if (roles.includes("admin") || project.project_lead_id === userId) {
+      return { data: project, error: null };
+    }
+
+    const { data: membership, error: membershipError } = await this.db
+      .from("project_members")
+      .select("id")
+      .eq("funded_project_id", fundedProjectId)
+      .eq("user_id", userId)
+      .eq("status", ProjectMemberStatus.ACTIVE)
+      .maybeSingle();
+
+    if (membershipError) {
+      return { data: null, error: membershipError };
+    }
+
+    if (membership) {
+      return { data: project, error: null };
+    }
+
+    if (roles.includes("rnd")) {
+      const { data: assignment, error: assignmentError } = await this.db
+        .from("proposal_rnd")
+        .select("proposal_id")
+        .eq("proposal_id", project.proposal_id)
+        .eq("rnd_id", userId)
+        .maybeSingle();
+
+      if (assignmentError) {
+        return { data: null, error: assignmentError };
+      }
+
+      if (assignment) {
+        return { data: project, error: null };
+      }
+    }
+
+    return {
+      data: null,
+      error: {
+        message: "Forbidden: You are not authorized to access this project's monitoring data.",
+        code: "FORBIDDEN",
+      },
+    };
+  }
+
+  /**
+   * DOST reporting gate. Quarterly and terminal reports stay blocked until both
+   * compliance documents have been verified by R&D, not merely uploaded.
+   */
+  async getComplianceVerificationBlockers(fundedProjectId: number) {
+    const { data: complianceRow, error } = await this.db
+      .from("funded_projects")
+      .select("id, moa_status, agency_cert_status")
+      .eq("id", fundedProjectId)
+      .maybeSingle();
+
+    if (error) {
+      return { data: null, error };
+    }
+
+    if (!complianceRow) {
+      return {
+        data: null,
+        error: {
+          message: "Funded project not found.",
+          code: "PROJECT_NOT_FOUND",
+        },
+      };
+    }
+
+    const statusLabels: Record<string, string> = {
+      not_uploaded: "not uploaded",
+      pending_verification: "awaiting R&D verification",
+      rejected: "rejected by R&D",
+      verified: "verified",
+    };
+
+    const blockers: string[] = [];
+    const moaStatus = (complianceRow as any).moa_status ?? "not_uploaded";
+    const agencyStatus = (complianceRow as any).agency_cert_status ?? "not_uploaded";
+
+    if (moaStatus !== "verified") {
+      blockers.push(
+        `Memorandum of Agreement (DOST Form 5 — ${statusLabels[moaStatus] ?? moaStatus})`,
+      );
+    }
+    if (agencyStatus !== "verified") {
+      blockers.push(
+        `Agency Certification (DOST Form 4 — ${statusLabels[agencyStatus] ?? agencyStatus})`,
+      );
+    }
+
+    return { data: blockers, error: null };
+  }
+
+  /**
+   * Shared reconciliation math for terminal-report submission, verification messaging,
+   * and certificate issuance.
+   */
+  private async getCertificateReconciliation(fundedProjectId: number, surrenderedAmount: number) {
+    const { data: summary, error } = await this.getBudgetSummary(fundedProjectId);
+    if (error || !summary) {
+      return {
+        data: null,
+        error: error ?? { message: "Could not load budget summary for reconciliation." },
+      };
+    }
+
+    const allocatedTotal = Number(summary.total_budget) || 0;
+    const spentTotal = Number(summary.total_actual_spent) || 0;
+    const surrenderedTotal = Number(surrenderedAmount) || 0;
+    const unexpendedBalance = allocatedTotal - spentTotal;
+    const gap = allocatedTotal - (spentTotal + surrenderedTotal);
+
+    return {
+      data: {
+        allocatedTotal,
+        spentTotal,
+        surrenderedTotal,
+        unexpendedBalance,
+        gap,
+        isBalanced: Math.abs(gap) <= 0.01,
+      },
+      error: null,
+    };
+  }
+
+  /**
    * Get funded projects with optional filtering
    * - Proponents see only their projects
    * - RND/Admin see all projects
@@ -1256,6 +1411,7 @@ export class ProjectService {
     if (membership) {
       return {
         coi: true as const,
+        code: "COI_BLOCKED",
         message:
           "Conflict of interest: you are a member of this project and cannot perform this action. Another R&D officer or admin must handle it.",
       };
@@ -1620,32 +1776,18 @@ export class ProjectService {
     // Gate: compliance docs (MOA + Agency Cert) must be VERIFIED by R&D before
     // fund requests can be created. Presence-only was a trust gap — a proponent
     // could upload garbage and unlock the gate. See migration 20260420202938.
-    const { data: complianceRow } = await this.db
-      .from("funded_projects")
-      .select("moa_status, agency_cert_status")
-      .eq("id", input.funded_project_id)
-      .single();
-    if (complianceRow) {
-      const { moa_status, agency_cert_status } = complianceRow as {
-        moa_status: string;
-        agency_cert_status: string;
+    const compliance = await this.getComplianceVerificationBlockers(input.funded_project_id);
+    if (compliance.error) {
+      return { data: null, error: compliance.error };
+    }
+    if ((compliance.data || []).length > 0) {
+      return {
+        data: null,
+        error: {
+          message: `Compliance documents must be verified by R&D before submitting fund requests. Pending: ${(compliance.data || []).join("; ")}.`,
+          code: "COMPLIANCE_DOCS_NOT_VERIFIED",
+        },
       };
-      const missing: string[] = [];
-      if (moa_status !== "verified") {
-        missing.push(`Memorandum of Agreement (${moa_status.replace(/_/g, " ")})`);
-      }
-      if (agency_cert_status !== "verified") {
-        missing.push(`Agency Certification (${agency_cert_status.replace(/_/g, " ")})`);
-      }
-      if (missing.length > 0) {
-        return {
-          data: null,
-          error: {
-            message: `Compliance documents must be verified by R&D before submitting fund requests. Status: ${missing.join("; ")}.`,
-            code: "COMPLIANCE_DOCS_NOT_VERIFIED",
-          },
-        };
-      }
     }
 
     // Same three-way check as quarterly/terminal reports:
@@ -2109,7 +2251,7 @@ export class ProjectService {
         target_type: "funded_project",
         details: {},
       });
-      return { data: null, error: { message: coi.message } };
+      return { data: null, error: { message: coi.message, code: coi.code } };
     }
 
     // Verify every applicable (year, quarter) report is verified
@@ -2164,43 +2306,23 @@ export class ProjectService {
       };
     }
 
-    // Financial reconciliation gate (RDEC President's "utilize all or block" rule):
-    // certificate cannot be issued unless the books balance. Specifically:
-    //   sum(approved expenses) + surrendered_amount ≈ sum(allocated LIB)
-    // Tolerance is 0.01 PHP for rounding drift. Proponent declares surrender at
-    // terminal report submission; R&D's verification confirms the declaration.
-    {
-      const { data: fpRow } = await this.db
-        .from("funded_projects")
-        .select("proposal_budget_versions!funded_projects_current_budget_version_id_fkey(grand_total)")
-        .eq("id", input.funded_project_id)
-        .single();
-      const allocatedTotal = Number(
-        (fpRow as any)?.proposal_budget_versions?.grand_total ?? 0,
+    const { data: reconciliation, error: reconciliationError } =
+      await this.getCertificateReconciliation(
+        input.funded_project_id,
+        Number((terminalReport as any).surrendered_amount ?? 0),
       );
+    if (reconciliationError || !reconciliation) {
+      return { data: null, error: reconciliationError };
+    }
 
-      const { data: expenseRows } = await this.db
-        .from("project_expenses")
-        .select("approved_amount, expenses, project_reports!inner(funded_project_id)")
-        .eq("project_reports.funded_project_id", input.funded_project_id);
-      const spentTotal = (expenseRows ?? []).reduce(
-        (sum, e) => sum + (Number((e as any).approved_amount ?? (e as any).expenses) || 0),
-        0,
-      );
-
-      const surrenderedTotal = Number((terminalReport as any).surrendered_amount ?? 0);
-      const reconciled = spentTotal + surrenderedTotal;
-      const diff = allocatedTotal - reconciled;
-
-      if (diff > 0.01) {
-        return {
-          data: null,
-          error: {
-            message: `Cannot issue certificate. Budget not fully accounted for: ₱${allocatedTotal.toFixed(2)} allocated, ₱${spentTotal.toFixed(2)} spent, ₱${surrenderedTotal.toFixed(2)} surrendered — a gap of ₱${diff.toFixed(2)} remains. Proponent must either spend or surrender the difference before the certificate can be issued.`,
-            code: "UTILIZATION_GAP",
-          },
-        };
-      }
+    if (reconciliation.gap > 0.01) {
+      return {
+        data: null,
+        error: {
+          message: `Cannot issue certificate. Budget not fully accounted for: ₱${reconciliation.allocatedTotal.toFixed(2)} allocated, ₱${reconciliation.spentTotal.toFixed(2)} spent, ₱${reconciliation.surrenderedTotal.toFixed(2)} surrendered — a gap of ₱${reconciliation.gap.toFixed(2)} remains. Proponent must either spend or surrender the difference before the certificate can be issued.`,
+          code: "UTILIZATION_GAP",
+        },
+      };
     }
 
     // Check if certificate was already issued
@@ -4110,25 +4232,24 @@ export class ProjectService {
     // allocated to 0, contradicting the summary endpoint the UI calls.
     const surrenderedAmount = Number(input.surrendered_amount ?? 0) || 0;
     if (surrenderedAmount > 0) {
-      const { data: summary, error: summaryError } = await this.getBudgetSummary(
-        input.funded_project_id,
-      );
-      if (summaryError || !summary) {
+      const { data: reconciliation, error: reconciliationError } =
+        await this.getCertificateReconciliation(input.funded_project_id, surrenderedAmount);
+      if (reconciliationError || !reconciliation) {
         return {
           data: null,
-          error: summaryError ?? { message: "Could not load budget summary for surrender validation." },
+          error:
+            reconciliationError ?? {
+              message: "Could not load budget summary for surrender validation.",
+            },
         };
       }
 
-      const allocatedTotal = Number(summary.total_budget) || 0;
-      const spentTotal = Number(summary.total_actual_spent) || 0;
-      const unexpendedBalance = allocatedTotal - spentTotal;
       // Tolerate 0.01 PHP rounding drift
-      if (surrenderedAmount > unexpendedBalance + 0.01) {
+      if (surrenderedAmount > reconciliation.unexpendedBalance + 0.01) {
         return {
           data: null,
           error: {
-            message: `Declared surrender (₱${surrenderedAmount.toFixed(2)}) exceeds the unexpended balance (₱${unexpendedBalance.toFixed(2)}). You can only surrender what hasn't been spent.`,
+            message: `Declared surrender (₱${surrenderedAmount.toFixed(2)}) exceeds the unexpended balance (₱${reconciliation.unexpendedBalance.toFixed(2)}). You can only surrender what hasn't been spent.`,
             code: "SURRENDER_EXCEEDS_BALANCE",
           },
         };
@@ -4244,7 +4365,10 @@ export class ProjectService {
       .single();
 
     if (!terminalReport) {
-      return { data: null, error: { message: "Terminal report not found." } };
+      return {
+        data: null,
+        error: { message: "Terminal report not found.", code: "TERMINAL_REPORT_NOT_FOUND" },
+      };
     }
 
     // COI guard
@@ -4258,7 +4382,7 @@ export class ProjectService {
         target_type: "funded_project",
         details: { funded_project_id: terminalReport.funded_project_id },
       });
-      return { data: null, error: { message: coi.message } };
+      return { data: null, error: { message: coi.message, code: coi.code } };
     }
 
     const { data, error } = await this.db
@@ -4286,9 +4410,29 @@ export class ProjectService {
     if (!data) {
       return {
         data: null,
-        error: { message: "Terminal report not found or already verified." },
+        error: {
+          message: "Terminal report not found or already verified.",
+          code: "TERMINAL_REPORT_NOT_PENDING",
+        },
       };
     }
+
+    const { data: reconciliation, error: reconciliationError } =
+      await this.getCertificateReconciliation(
+        terminalReport.funded_project_id,
+        Number((data as any).surrendered_amount ?? 0),
+      );
+    if (reconciliationError || !reconciliation) {
+      return { data: null, error: reconciliationError };
+    }
+
+    const certificateReady = reconciliation.gap <= 0.01;
+    const verificationMessage = certificateReady
+      ? "Your terminal report has been verified. A completion certificate can now be issued."
+      : `Your terminal report has been verified. The completion certificate will stay blocked until the remaining ₱${reconciliation.gap.toFixed(2)} budget gap is reconciled.`;
+    const verificationEmailBody = certificateReady
+      ? "Your terminal report has been verified and approved. A completion certificate can now be issued for your project. Sign in to SPMAMS for details."
+      : `Your terminal report has been verified, but the completion certificate is still blocked because ₱${reconciliation.gap.toFixed(2)} remains unreconciled. Sign in to SPMAMS for details.`;
 
     await logActivity(this.db, {
       user_id: input.verified_by,
@@ -4302,7 +4446,7 @@ export class ProjectService {
     // Notify the proponent
     await this.db.from("notifications").insert({
       user_id: data.submitted_by,
-      message: "Your terminal report has been verified. A completion certificate can now be issued.",
+      message: verificationMessage,
       is_read: false,
       link: "project-monitoring",
     });
@@ -4322,7 +4466,7 @@ export class ProjectService {
           proponent.email,
           proponent.first_name || "Proponent",
           "Terminal Report Verified",
-          "Your terminal report has been verified and approved. A completion certificate can now be issued for your project. Sign in to SPMAMS for details.",
+          verificationEmailBody,
           "View Project Monitoring",
           `${frontendUrl}/login`,
         );
@@ -4347,7 +4491,10 @@ export class ProjectService {
       .single();
 
     if (!terminalReport) {
-      return { data: null, error: { message: "Terminal report not found." } };
+      return {
+        data: null,
+        error: { message: "Terminal report not found.", code: "TERMINAL_REPORT_NOT_FOUND" },
+      };
     }
 
     const coi = await this.assertNoCoiOnProject(input.reviewed_by, terminalReport.funded_project_id);
@@ -4360,7 +4507,7 @@ export class ProjectService {
         target_type: "funded_project",
         details: { funded_project_id: terminalReport.funded_project_id },
       });
-      return { data: null, error: { message: coi.message } };
+      return { data: null, error: { message: coi.message, code: coi.code } };
     }
 
     const { data, error } = await this.db
@@ -4389,7 +4536,10 @@ export class ProjectService {
     if (!data) {
       return {
         data: null,
-        error: { message: "Terminal report not found or no longer in a submittable state." },
+        error: {
+          message: "Terminal report not found or no longer in a submittable state.",
+          code: "TERMINAL_REPORT_NOT_PENDING",
+        },
       };
     }
 

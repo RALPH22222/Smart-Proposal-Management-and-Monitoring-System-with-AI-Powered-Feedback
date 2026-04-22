@@ -53,12 +53,18 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
 
   if (error) {
     console.error("reject-terminal-report error:", error);
+    const code = (error as any).code;
     const message = (error as Error).message ?? "Failed to reject terminal report";
-    const isClientError =
-      message.includes("not found") || message.includes("no longer in a submittable");
     return {
-      statusCode: isClientError ? 400 : 500,
-      body: JSON.stringify({ message }),
+      statusCode:
+        code === "COI_BLOCKED"
+          ? 403
+          : code === "TERMINAL_REPORT_NOT_FOUND"
+            ? 404
+            : code === "TERMINAL_REPORT_NOT_PENDING"
+              ? 409
+              : 500,
+      body: JSON.stringify({ message, code }),
     };
   }
 

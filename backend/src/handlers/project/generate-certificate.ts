@@ -48,16 +48,24 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   });
 
   if (error) {
+    const code = (error as any).code;
     const statusCode =
-      (error as any).code === "INCOMPLETE_REPORTS" || (error as any).code === "CERTIFICATE_ALREADY_ISSUED"
-        ? 400
-        : 500;
+      code === "COI_BLOCKED"
+        ? 403
+        : code === "PROJECT_NOT_FOUND"
+          ? 404
+          : code === "INCOMPLETE_REPORTS" ||
+              code === "CERTIFICATE_ALREADY_ISSUED" ||
+              code === "TERMINAL_REPORT_NOT_VERIFIED" ||
+              code === "UTILIZATION_GAP"
+            ? 400
+            : 500;
     console.error("Error: ", JSON.stringify(error, null, 2));
     return {
       statusCode,
       body: JSON.stringify({
         message: error.message || "Internal server error.",
-        code: (error as any).code,
+        code,
       }),
     };
   }

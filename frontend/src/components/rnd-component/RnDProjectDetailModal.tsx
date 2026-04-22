@@ -365,6 +365,21 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
   // check (`quarters.every(q => q.status === 'approved')`).
   const allQuartersVerified = !!details?.reports?.length
     && details.reports.every(r => r.status === 'Verified');
+  const terminalSurrendered = Number(terminalReport?.surrendered_amount ?? 0) || 0;
+  const certificateGap =
+    budgetSummary && terminalReport
+      ? budgetSummary.total_budget - (budgetSummary.total_actual_spent + terminalSurrendered)
+      : null;
+  const certificateReady =
+    allQuartersVerified &&
+    terminalReport?.status === 'verified' &&
+    typeof certificateGap === 'number' &&
+    Math.abs(certificateGap) <= 0.01;
+  const certificateBlockedByGap =
+    allQuartersVerified &&
+    terminalReport?.status === 'verified' &&
+    typeof certificateGap === 'number' &&
+    certificateGap > 0.01;
 
   const pendingFundRequests = fundRequests.filter(fr => fr.status === 'pending');
   const reviewedFundRequests = fundRequests.filter(fr => fr.status !== 'pending');
@@ -1454,7 +1469,19 @@ const RnDProjectDetailModal: React.FC<RnDProjectDetailModalProps> = ({
                       <button onClick={() => setShowFinancialReport(true)} className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 font-semibold rounded-xl border border-emerald-200 text-xs hover:bg-emerald-100 transition-colors"><DollarSign className="w-4 h-4" /> View Detailed Financial Statement</button>
 
                       {/* Certificate Generation */}
-                      {allQuartersVerified && terminalReport?.status === 'verified' && (
+                      {certificateBlockedByGap && (
+                        <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border border-amber-200 p-6 text-center shadow-sm">
+                          <AlertTriangle className="w-12 h-12 text-amber-600 mx-auto mb-3" />
+                          <h3 className="text-lg font-bold text-amber-800">Certificate Blocked by Financial Gap</h3>
+                          <p className="text-sm text-amber-700 mb-2">
+                            Terminal report is verified, but ₱{certificateGap!.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} is still unreconciled.
+                          </p>
+                          <p className="text-xs text-amber-700">
+                            The proponent must either spend or surrender the remaining balance before you can issue the certificate.
+                          </p>
+                        </div>
+                      )}
+                      {certificateReady && (
                         <div className="bg-gradient-to-r from-emerald-50 to-blue-50 rounded-xl border border-emerald-200 p-6 text-center shadow-sm">
                           <Award className="w-12 h-12 text-emerald-600 mx-auto mb-3" />
                           <h3 className="text-lg font-bold text-emerald-800">Ready for Certificate</h3>

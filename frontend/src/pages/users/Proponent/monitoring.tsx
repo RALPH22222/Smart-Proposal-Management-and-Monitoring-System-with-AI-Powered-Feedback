@@ -568,9 +568,9 @@ const MonitoringPage: React.FC<{ viewRole?: string }> = ({ viewRole = 'proponent
   // backend guards in create-fund-request, request-realignment, request-extension.
   const isProjectLead = !!activeBackend && activeBackend.project_lead_id === user?.id;
   // DOST compliance gate: MOA (Form 5) + Agency Certification (Form 4) must be
-  // VERIFIED by R&D (not just uploaded) before any quarterly or terminal report
-  // can be submitted. The backend enforces the same rule — this UX surfaces it
-  // early with specific status info so the proponent knows exactly what to do.
+  // VERIFIED by R&D (not just uploaded) before quarterly reporting can begin.
+  // The terminal report no longer depends on this gate because the forms are
+  // already collected earlier in the monitoring flow.
   const moaStatus = (activeBackend as any)?.moa_status as ComplianceDocStatus | undefined;
   const agencyCertStatus = (activeBackend as any)?.agency_cert_status as ComplianceDocStatus | undefined;
   const statusLabel: Record<string, string> = {
@@ -1550,10 +1550,10 @@ const MonitoringPage: React.FC<{ viewRole?: string }> = ({ viewRole = 'proponent
                   <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-red-800 text-sm">
-                      Submit Report is blocked — required documents missing
+                      Submit Report is blocked — DOST documents not verified
                     </p>
                     <p className="text-xs text-red-700 mt-1">
-                      DOST requires the following to be uploaded before any quarterly or terminal report can be filed:
+                      DOST requires the following to be uploaded and verified by R&D before quarterly reporting can begin:
                     </p>
                     <ul className="list-disc list-inside mt-1 text-xs text-red-700 font-medium">
                       {missingComplianceDocs.map((doc) => (
@@ -1561,7 +1561,7 @@ const MonitoringPage: React.FC<{ viewRole?: string }> = ({ viewRole = 'proponent
                       ))}
                     </ul>
                     <p className="text-xs text-red-600 mt-2">
-                      Upload the missing file{missingComplianceDocs.length === 1 ? '' : 's'} in the <strong>Project Documents</strong> section above.
+                      Resolve these items in the <strong>Project Documents</strong> section above before filing the next report.
                     </p>
                   </div>
                 </div>
@@ -2077,7 +2077,7 @@ const MonitoringPage: React.FC<{ viewRole?: string }> = ({ viewRole = 'proponent
                           disabled={submittingReport || reportSubmissionBlocked}
                           title={
                             reportSubmissionBlocked
-                              ? `Upload required first: ${missingComplianceDocs.join(', ')}`
+                              ? `Verification required first: ${missingComplianceDocs.join(', ')}`
                               : undefined
                           }
                           className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -2085,7 +2085,7 @@ const MonitoringPage: React.FC<{ viewRole?: string }> = ({ viewRole = 'proponent
                           {submittingReport ? (
                             <><Loader2 className="w-4 h-4 animate-spin" /> {uploadProgress || 'Submitting...'}</>
                           ) : reportSubmissionBlocked ? (
-                            <><Lock className="w-4 h-4" /> Submit Report (DOST docs required)</>
+                            <><Lock className="w-4 h-4" /> Submit Report (DOST verification required)</>
                           ) : (
                             'Submit Report for Verification'
                           )}
@@ -2260,7 +2260,6 @@ const MonitoringPage: React.FC<{ viewRole?: string }> = ({ viewRole = 'proponent
                   <TerminalReportSection
                     fundedProjectId={activeBackend.id}
                     allQuartersVerified={quarters.length > 0 && quarters.every(q => q.status === 'approved')}
-                    missingComplianceDocs={missingComplianceDocs}
                   />
                 </div>
               )}

@@ -46,11 +46,20 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
   });
 
   if (error) {
+    const code = (error as any).code;
     console.error("Supabase error: ", JSON.stringify(error, null, 2));
     return {
-      statusCode: 500,
+      statusCode:
+        code === "COI_BLOCKED"
+          ? 403
+          : code === "TERMINAL_REPORT_NOT_FOUND"
+            ? 404
+            : code === "TERMINAL_REPORT_NOT_PENDING"
+              ? 409
+              : 500,
       body: JSON.stringify({
         message: error.message || "Internal server error.",
+        code,
       }),
     };
   }
