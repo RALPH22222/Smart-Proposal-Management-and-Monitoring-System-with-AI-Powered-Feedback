@@ -1,12 +1,11 @@
-import React, { useState, useRef } from 'react';
-import { X, Upload, CheckCircle, AlertTriangle, AlertCircle } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { X, CheckCircle, AlertTriangle, AlertCircle } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 export type FundingDecision = 'Approve' | 'Revise' | 'Reject';
 
 export interface FundingActionSubmitData {
   decision: FundingDecision;
-  file?: File;
 }
 
 interface FundingActionModalProps {
@@ -16,90 +15,18 @@ interface FundingActionModalProps {
   proposalTitle: string;
 }
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const ALLOWED_MIME_TYPES = [
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-];
-
-const UPLOAD_CONFIG: Record<FundingDecision, { label: string; border: string; bg: string; hover: string; text: string; icon: string }> = {
-  Approve: {
-    label: 'Upload Funding Document',
-    border: 'border-emerald-300',
-    bg: 'bg-emerald-50/50',
-    hover: 'hover:bg-emerald-50',
-    text: 'text-emerald-800',
-    icon: 'text-emerald-500',
-  },
-  Revise: {
-    label: 'Upload Revision Document (optional)',
-    border: 'border-amber-300',
-    bg: 'bg-amber-50/50',
-    hover: 'hover:bg-amber-50',
-    text: 'text-amber-800',
-    icon: 'text-amber-500',
-  },
-  Reject: {
-    label: 'Upload Rejection Document (optional)',
-    border: 'border-red-300',
-    bg: 'bg-red-50/50',
-    hover: 'hover:bg-red-50',
-    text: 'text-red-800',
-    icon: 'text-red-500',
-  },
-};
-
-function validateFile(file: File): boolean {
-  if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-    Swal.fire({
-      icon: 'error',
-      title: 'Invalid File Type',
-      text: 'Only PDF, DOC, and DOCX files are allowed.',
-    });
-    return false;
-  }
-  if (file.size > MAX_FILE_SIZE) {
-    Swal.fire({
-      icon: 'error',
-      title: 'File Too Large',
-      text: 'File size must not exceed 10MB.',
-    });
-    return false;
-  }
-  return true;
-}
-
 const FundingActionModal: React.FC<FundingActionModalProps> = ({ isOpen, onClose, onSubmit, proposalTitle }) => {
   const [decision, setDecision] = useState<FundingDecision | null>(null);
-  const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setDecision(null);
+      setIsSubmitting(false);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const selected = e.target.files[0];
-      if (validateFile(selected)) {
-        setFile(selected);
-      } else {
-        e.target.value = '';
-      }
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent) => e.preventDefault();
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const dropped = e.dataTransfer.files[0];
-      if (validateFile(dropped)) {
-        setFile(dropped);
-      }
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,16 +35,11 @@ const FundingActionModal: React.FC<FundingActionModalProps> = ({ isOpen, onClose
       Swal.fire({ icon: 'warning', title: 'Action Required', text: 'Please select a decision.' });
       return;
     }
-    // File is required only for Approve
-    if (decision === 'Approve' && !file) {
-      Swal.fire({ icon: 'warning', title: 'File Required', text: 'Please upload a funding document to approve.' });
-      return;
-    }
 
     let shouldClose = false;
     setIsSubmitting(true);
     try {
-      shouldClose = await onSubmit({ decision, file: file || undefined });
+      shouldClose = await onSubmit({ decision });
       if (shouldClose) onClose();
     } catch (error: any) {
       Swal.fire({ icon: 'error', title: 'Submission Failed', text: error?.response?.data?.message || 'Something went wrong.' });
@@ -126,13 +48,9 @@ const FundingActionModal: React.FC<FundingActionModalProps> = ({ isOpen, onClose
     }
   };
 
-  const uploadConfig = decision ? UPLOAD_CONFIG[decision] : null;
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
-
-        {/* Header */}
         <div className="p-6 border-b border-slate-100 flex-shrink-0 flex justify-between items-start bg-slate-50/50">
           <div>
             <h3 className="text-xl font-bold text-slate-800">Funding Decision</h3>
@@ -143,11 +61,8 @@ const FundingActionModal: React.FC<FundingActionModalProps> = ({ isOpen, onClose
           </button>
         </div>
 
-        {/* Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           <form id="funding-action-form" onSubmit={handleSubmit} className="space-y-6">
-
-            {/* Decision Selection */}
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-3">
                 Action to take <span className="text-red-500">*</span>
@@ -155,15 +70,15 @@ const FundingActionModal: React.FC<FundingActionModalProps> = ({ isOpen, onClose
               <div className="grid grid-cols-3 gap-3">
                 <button
                   type="button"
-                  onClick={() => { setDecision('Approve'); setFile(null); }}
+                  onClick={() => setDecision('Approve')}
                   className={`relative p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${decision === 'Approve' ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm' : 'border-slate-200 hover:border-emerald-200 hover:bg-emerald-50/30 text-slate-500'}`}
                 >
                   <CheckCircle className="w-6 h-6 mb-1" />
-                  <span className="font-bold text-sm">Submit</span>
+                  <span className="font-bold text-sm">Approve</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setDecision('Revise'); setFile(null); }}
+                  onClick={() => setDecision('Revise')}
                   className={`relative p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${decision === 'Revise' ? 'border-amber-500 bg-amber-50 text-amber-700 shadow-sm' : 'border-slate-200 hover:border-amber-200 hover:bg-amber-50/30 text-slate-500'}`}
                 >
                   <AlertTriangle className="w-6 h-6 mb-1" />
@@ -171,7 +86,7 @@ const FundingActionModal: React.FC<FundingActionModalProps> = ({ isOpen, onClose
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setDecision('Reject'); setFile(null); }}
+                  onClick={() => setDecision('Reject')}
                   className={`relative p-3 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${decision === 'Reject' ? 'border-red-500 bg-red-50 text-red-700 shadow-sm' : 'border-slate-200 hover:border-red-200 hover:bg-red-50/30 text-slate-500'}`}
                 >
                   <AlertCircle className="w-6 h-6 mb-1" />
@@ -180,49 +95,12 @@ const FundingActionModal: React.FC<FundingActionModalProps> = ({ isOpen, onClose
               </div>
             </div>
 
-            {/* Approval Description Notice */}
-            {decision === 'Approve' && (
-              <div className="animate-in fade-in slide-in-from-top-2 bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-800 text-sm">
-                <div className="flex gap-3 items-start">
-                  <CheckCircle className="w-5 h-5 text-slate-600 shrink-0 mt-0.5" />
-                  <p className="leading-relaxed">
-                    <span className="font-bold">Approval Context: </span>
-                    Proceeding with this action indicates approval that this project has been officially funded by the RDEC committee.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* File Upload — shown for all decisions */}
-            {decision && uploadConfig && (
-              <div className="animate-in fade-in slide-in-from-top-2">
-                <label className="block text-sm font-bold text-slate-700 mb-2">
-                  {uploadConfig.label} {decision === 'Approve' && <span className="text-red-500">*</span>}
-                </label>
-                <div
-                  className={`border-2 border-dashed ${uploadConfig.border} ${uploadConfig.bg} rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer ${uploadConfig.hover} transition-colors`}
-                  onClick={() => fileInputRef.current?.click()}
-                  onDragOver={handleDragOver}
-                  onDrop={handleDrop}
-                >
-                  <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".pdf,.doc,.docx" />
-                  <Upload className={`w-8 h-8 ${uploadConfig.icon} mb-3`} />
-                  {file ? (
-                    <div className={`text-sm font-medium ${uploadConfig.text} break-all`}>{file.name}</div>
-                  ) : (
-                    <>
-                      <p className={`text-sm font-medium ${uploadConfig.text} mb-1`}>Click to upload or drag and drop</p>
-                      <p className={`text-xs ${uploadConfig.icon} opacity-70`}>PDF, DOC, DOCX up to 10MB</p>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+              Funding decisions update the proposal status only. No reviewer files are attached or shown to the proponent in this flow.
+            </div>
           </form>
         </div>
 
-        {/* Footer */}
         <div className="p-6 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50 flex-shrink-0">
           <button
             type="button"

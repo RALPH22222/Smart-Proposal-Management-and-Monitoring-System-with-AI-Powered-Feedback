@@ -315,10 +315,7 @@ export const fundingDecisionSchema = z.object({
   decision: z.nativeEnum(FundingDecisionType),
   file_url: z.string().url().optional(),
   remarks: z.string().max(2000).optional(),
-}).refine(
-  (data) => !(data.decision === FundingDecisionType.FUNDED && !data.file_url),
-  { message: "Funding document URL is required when approving", path: ["file_url"] },
-);
+});
 
 export type FundingDecisionInput = z.infer<typeof fundingDecisionSchema>;
 

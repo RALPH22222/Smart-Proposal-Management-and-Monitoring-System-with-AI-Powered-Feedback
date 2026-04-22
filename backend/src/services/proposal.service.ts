@@ -2217,11 +2217,18 @@ export class ProposalService {
       return { error: fetchError || new Error("Proposal not found") };
     }
 
-    // 2. Verify proposal is in endorsed_for_funding status
-    if (proposal.status !== Status.ENDORSED_FOR_FUNDING) {
+    // 2. Verify proposal is in a funding-stage status. R&D/Admin can re-decide
+    // on proposals that are already in revision_funding or rejected_funding —
+    // only the proponent is locked out, not the decider.
+    const allowedFundingStatuses: string[] = [
+      Status.ENDORSED_FOR_FUNDING,
+      Status.REVISION_FUNDING,
+      Status.REJECTED_FUNDING,
+    ];
+    if (!allowedFundingStatuses.includes(proposal.status)) {
       return {
         error: new Error(
-          `Proposal must be in 'endorsed_for_funding' status. Current status: ${proposal.status}`,
+          `Proposal must be in a funding-stage status (endorsed_for_funding, revision_funding, or rejected_funding). Current status: ${proposal.status}`,
         ),
       };
     }
@@ -2282,6 +2289,8 @@ export class ProposalService {
 
       return { data: { proposal_id, funded_project: fundedProject, status: Status.FUNDED }, error: null };
     } else if (decision === FundingDecisionType.REVISION_FUNDING) {
+      const normalizedRemarks = remarks?.trim() || null;
+
       const { error: updateError } = await this.db
         .from("proposals")
         .update({
@@ -2300,11 +2309,21 @@ export class ProposalService {
         category: "proposal",
         target_id: String(proposal_id),
         target_type: "proposal",
-        details: { remarks: remarks || "Revision requested at funding stage" },
+        details: {
+          remarks: normalizedRemarks || "Revision requested at funding stage",
+          file_url: file_url || null,
+        },
       });
 
-      return { data: { proposal_id, status: Status.REVISION_FUNDING }, error: null };
+      return {
+        data: {
+          proposal_id,
+          status: Status.REVISION_FUNDING,
+        },
+        error: null,
+      };
     } else if (decision === FundingDecisionType.REJECTED_FUNDING) {
+      const normalizedRemarks = remarks?.trim() || null;
       const { error: updateError } = await this.db
         .from("proposals")
         .update({
@@ -2323,7 +2342,10 @@ export class ProposalService {
         category: "proposal",
         target_id: String(proposal_id),
         target_type: "proposal",
-        details: { remarks: remarks || "Proposal rejected at funding stage" },
+        details: {
+          remarks: normalizedRemarks || "Proposal rejected at funding stage",
+          file_url: file_url || null,
+        },
       });
 
       return { data: { proposal_id, status: Status.REJECTED_FUNDING }, error: null };
@@ -2368,11 +2390,11 @@ export class ProposalService {
       return { error: new Error("You do not have permission to revise this proposal") };
     }
 
-    // 3. Verify status is revision_rnd or revision_funding
-    if (proposal.status !== Status.REVISION_RND && proposal.status !== Status.REVISION_FUNDING) {
+    // 3. Verify status is revision_rnd only. Funding-stage revision is internal to R&D.
+    if (proposal.status !== Status.REVISION_RND) {
       return {
         error: new Error(
-          `Proposal must be in 'revision_rnd' or 'revision_funding' status to submit revision. Current status: ${proposal.status}`,
+          `Proposal must be in 'revision_rnd' status to submit revision. Current status: ${proposal.status}`,
         ),
       };
     }
@@ -2446,10 +2468,7 @@ export class ProposalService {
 
     // 6. Build the proposal update payload. Reads (priority/discipline/sector lookups)
     // are safe to do before the claim; destructive join-table writes happen AFTER.
-    const isRndRevision = proposal.status === Status.REVISION_RND;
-    const targetStatus = isRndRevision
-      ? Status.REVIEW_RND                // Back to R&D queue; R&D re-reviews then forwards to evaluators
-      : Status.ENDORSED_FOR_FUNDING;     // Funding revision — back to Funding page
+    const targetStatus = Status.REVIEW_RND;
 
     const updatePayload: Record<string, any> = {
       status: targetStatus,

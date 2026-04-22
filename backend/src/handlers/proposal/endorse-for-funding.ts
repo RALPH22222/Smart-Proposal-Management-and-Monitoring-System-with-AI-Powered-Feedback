@@ -69,13 +69,13 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
           emailSubject = "Proposal Approved for Funding";
           emailBody = `Great news! Your proposal "${proposal.project_title}" has been approved for funding. A funded project has been created. Please log in to SPMAMS for details.`;
         } else if (decision === FundingDecisionType.REVISION_FUNDING) {
-          notifMessage = `Your proposal "${proposal.project_title}" requires revision before funding can proceed. Please review the feedback and resubmit.`;
-          emailSubject = "Proposal Revision Required (Funding Stage)";
-          emailBody = `Your proposal "${proposal.project_title}" requires revision before funding can proceed. Please log in to SPMAMS to review the feedback and resubmit.`;
+          notifMessage = `Your proposal "${proposal.project_title}" is under funding-stage revision review. Please log in to view the updated status. No action is required from you at this time.`;
+          emailSubject = "Proposal Under Funding Review";
+          emailBody = `Your proposal "${proposal.project_title}" is under funding-stage revision review. Please log in to SPMAMS to view the updated status. No action is required from you at this time.`;
         } else if (decision === FundingDecisionType.REJECTED_FUNDING) {
-          notifMessage = `Your proposal "${proposal.project_title}" has been rejected at the funding stage.${result.data.remarks ? ` Reason: ${result.data.remarks}` : ""}`;
+          notifMessage = `Your proposal "${proposal.project_title}" has been rejected at the funding stage. Please log in to view the updated status.`;
           emailSubject = "Proposal Rejected (Funding Stage)";
-          emailBody = `Your proposal "${proposal.project_title}" has been rejected at the funding stage.${result.data.remarks ? ` Reason: ${result.data.remarks}` : ""} Please log in to SPMAMS for details.`;
+          emailBody = `Your proposal "${proposal.project_title}" has been rejected at the funding stage. Please log in to SPMAMS to view the updated status.`;
         }
 
         if (notifMessage) {

@@ -44,7 +44,6 @@ import { differenceInMonths, parseISO, isValid, addMonths, format } from "date-f
 import Swal from "sweetalert2";
 import { openProposalFile, downloadSignedUrl } from "../../utils/signed-url";
 import { getFileActionMeta } from "../shared/FileActionButton";
-import { api } from "../../utils/axios";
 import type { Proposal, BudgetSource, BudgetLineItem } from "../../types/proponentTypes";
 import type { ExpenseItem } from "../../types/proponent-form";
 import { type LookupItem, fetchAgencyAddresses, type AddressItem, fetchRejectionSummary, fetchRevisionSummary, type RevisionSummary, submitRevisedProposal, requestProponentExtension, getProponentExtensionRequests, type ProponentExtensionRequest, fetchBudgetSubcategories, type BudgetSubcategoryDto } from "../../services/proposal.api";
@@ -58,27 +57,13 @@ import { ProposalInsightButtons } from "../shared/ProposalInsightsPanel";
 import SecureImage from "../shared/SecureImage";
 import { LibImportModal } from "../../pages/users/Proponent/submission/budgetSection";
 
-const extractS3Key = (url: string): string | null => {
-  if (!url) return null;
-  try {
-    const parsed = new URL(url);
-    let path = parsed.pathname.replace(/^\//, '');
-    const pathStyleMatch = parsed.hostname.match(/^s3[.-]/);
-    if (pathStyleMatch) {
-      const segments = path.split('/');
-      segments.shift();
-      path = segments.join('/');
-    }
-    return decodeURIComponent(path) || null;
-  } catch {
-    return null;
-  }
-};
-
 interface Site {
   site: string;
   city: string;
 }
+
+const REVISION_STATUSES = ['revise', 'revision', 'revision_rnd', 'revision required', 'not_submitted', 'not submitted'];
+const REVISION_SUMMARY_STATUSES = ['revise', 'revision', 'revision_rnd', 'revision required', 'under r&d review', 'not_submitted'];
 
 interface DetailedProposalModalProps {
   isOpen: boolean;
@@ -188,11 +173,6 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   const [isSubmittingRevision, setIsSubmittingRevision] = useState(false);
   const [revisionError, setRevisionError] = useState<string | null>(null);
 
-  // Inline funding document viewer state
-  const [fundingSignedUrl, setFundingSignedUrl] = useState<string | null>(null);
-  const [isLoadingFundingUrl, setIsLoadingFundingUrl] = useState(false);
-  const [fundingUrlError, setFundingUrlError] = useState<string | null>(null);
-
   // Resolved funded project data (fetched independently so it works even if getAll doesn't return it)
   const [resolvedFundedProjectId, setResolvedFundedProjectId] = useState<number | null>(null);
   const [resolvedProjectLeadId, setResolvedProjectLeadId] = useState<string | null>(null);
@@ -214,6 +194,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     endDate?: { old: string; new: string };
     budget?: { changed: boolean };
     file?: { old: string; new: string };
+    nextStatus?: string;
   } | null>(null);
 
   // --- Revision Classification Editor State ---
@@ -229,7 +210,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   const [revIsPriorityOpen, setRevIsPriorityOpen] = useState(false);
   const [revCustomClassInput, setRevCustomClassInput] = useState("");
   const normalizedStatus = (proposal?.status || '').toLowerCase().trim();
-  const isInRevisionMode = ['revise', 'revision', 'revision_rnd', 'revision required', 'not_submitted', 'not submitted'].includes(normalizedStatus);
+  const isInRevisionMode = REVISION_STATUSES.includes(normalizedStatus);
   const isNotSubmittedMode = ['not_submitted', 'not submitted'].includes(normalizedStatus);
   const isRejectedMode = ['rejected', 'disapproved', 'reject', 'rejected_rnd', 'rejected proposal'].includes(normalizedStatus);
 
@@ -242,45 +223,6 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     const v = n % 100;
     return n + (s[(v - 20) % 10] || s[v] || s[0]);
   };
-
-  // Fetch signed URL for inline funding document
-  const isFundedForEffect = (proposal?.status || '').toLowerCase().trim() === 'funded';
-  useEffect(() => {
-    if (!isOpen || !isFundedForEffect || !proposal?.fundingDocumentUrl) {
-      setFundingSignedUrl(null);
-      setFundingUrlError(null);
-      return;
-    }
-    const fetchSignedUrl = async () => {
-      setIsLoadingFundingUrl(true);
-      setFundingUrlError(null);
-      try {
-        const key = extractS3Key(proposal.fundingDocumentUrl!);
-        if (!key) {
-          setFundingSignedUrl(null);
-          setFundingUrlError('Invalid document URL.');
-          return;
-        }
-        const { data } = await api.get<{ url: string }>('/files/signed-url', {
-          params: { key, bucket: 'proposals' },
-          withCredentials: true,
-        });
-        setFundingSignedUrl(data.url);
-      } catch (err: any) {
-        const status = err?.response?.status;
-        if (status === 404) {
-          setFundingSignedUrl(null);
-          setFundingUrlError('The funding approval document is no longer available in storage. It may have been removed or was not uploaded successfully.');
-        } else {
-          setFundingSignedUrl(null);
-          setFundingUrlError('Could not generate a secure preview link.');
-        }
-      } finally {
-        setIsLoadingFundingUrl(false);
-      }
-    };
-    fetchSignedUrl();
-  }, [isOpen, isFundedForEffect, proposal?.fundingDocumentUrl]);
 
   // Resolve funded project ID + lead — uses prop if available, otherwise fetches from /project/funded
   useEffect(() => {
@@ -364,7 +306,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
       const pStatus = (proposal?.status || '').toLowerCase();
       setRevisionData(null);
       setIsLoadingRevision(true);
-      if (['revise', 'revision', 'revision_rnd', 'revision required', 'under r&d review', 'not_submitted'].includes(pStatus)) {
+      if (REVISION_SUMMARY_STATUSES.includes(pStatus)) {
         try {
           const data = await fetchRevisionSummary(Number(proposal?.id));
           setRevisionData(data);
@@ -453,6 +395,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
       setNewFile(null);
       setNewWorkPlanFile(null);
       setIsRevisionLibImportOpen(false);
+      setRevisionChanges(null);
     }
   }, [isOpen]);
 
@@ -1006,12 +949,15 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
           if (response.data?.file_url && !submittedFiles.includes(response.data.file_url)) {
             setSubmittedFiles((prev) => [...prev, response.data!.file_url]);
           }
-          setRevisionChanges(changes);
+          const nextStatus = response.data?.status || "review_rnd";
+          setRevisionChanges({ ...changes, nextStatus });
 
           // Success - show toast or notification
           Swal.fire({
             title: 'Success!',
-            text: 'Revision submitted successfully! Your proposal has been sent back to R&D for review.',
+            text: nextStatus === 'endorsed_for_funding'
+              ? 'Revision submitted successfully! Your proposal has been sent back to Project Funding for review.'
+              : 'Revision submitted successfully! Your proposal has been sent back to R&D for review.',
             icon: 'success',
             confirmButtonColor: '#C8102E'
           });
@@ -1025,7 +971,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
           if (onUpdateProposal && proposal) {
             onUpdateProposal({
               ...proposal,
-              status: response.data?.status || "review_rnd",
+              status: nextStatus,
               lastUpdated: new Date().toISOString().split("T")[0],
             });
           }
@@ -1094,6 +1040,8 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   // Restrict other fields in revision mode
   const canEditOtherFields = !isInRevisionMode && isEditing;
   const isFunded = normalizedStatus === 'funded';
+  const revisionSubmissionStatus = (revisionChanges?.nextStatus || '').toLowerCase().trim();
+  const revisionSubmissionReturnedToFunding = revisionSubmissionStatus === 'endorsed_for_funding';
 
   // Deadline expiry computation
   const deadlineDate = (revisionData?.created_at && revisionData?.deadline)
@@ -1199,6 +1147,15 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
         label: "Funded",
       };
 
+    if (s === "revision_funding")
+      return {
+        bg: "bg-orange-50",
+        border: "border-orange-200",
+        text: "text-orange-800",
+        icon: <RefreshCw className="w-5 h-5 text-orange-600" />,
+        label: "Funding Revision",
+      };
+
     if (["revise", "revision", "revision_rnd", "revision required"].includes(s)) {
       return {
         bg: "bg-orange-50",
@@ -1220,6 +1177,15 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
     }
 
 
+
+    if (s === "rejected_funding")
+      return {
+        bg: "bg-red-50",
+        border: "border-red-200",
+        text: "text-red-800",
+        icon: <XCircle className="w-5 h-5 text-red-600" />,
+        label: "Funding Rejected",
+      };
 
     if (["rejected", "disapproved", "reject", "rejected_rnd", "rejected proposal"].includes(s))
       return {
@@ -1298,7 +1264,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
   };
 
   const activeComments =
-    ["revise", "revision", "revision_rnd", "revision required", "under r&d review", "not_submitted"].includes((proposal.status || "").toLowerCase())
+    REVISION_SUMMARY_STATUSES.includes((proposal.status || "").toLowerCase())
       ? [
         { section: "Title Assessment", comment: revisionData?.title_comment },
         { section: "Budget Assessment", comment: revisionData?.budget_comment },
@@ -1520,7 +1486,7 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                     <div>
                       <h3 className="text-sm font-bold text-amber-900">Before you submit this revision</h3>
                       <p className="mt-1 text-xs leading-relaxed text-amber-800">
-                        Follow the feedback from R&amp;D, replace the proposal file, then submit the updated version.
+                        Follow the feedback from R&D, replace the proposal file, then submit the updated version.
                         The <span className="font-semibold">Submit Revision</span> button stays disabled until a new DOST Form 1B file is attached.
                       </p>
                     </div>
@@ -1648,61 +1614,6 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   <Users className="absolute -right-6 -bottom-6 w-32 h-32 text-green-200 opacity-30 pointer-events-none z-0" />
                 </div>
 
-                {/* Funding Approval Document */}
-                {proposal.fundingDocumentUrl ? (
-                  <div className="rounded-lg border border-slate-200 overflow-hidden">
-                    <div className="bg-slate-100 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-red-600" />
-                        <span className="text-sm font-bold text-slate-800">Funding Approval Document</span>
-                      </div>
-                      {fundingSignedUrl && (
-                        <button
-                          onClick={() => window.open(fundingSignedUrl, '_blank', 'noopener')}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[#C8102E] hover:bg-[#A50D26] rounded-lg transition-colors"
-                        >
-                          <Download className="w-3.5 h-3.5" />
-                          Open Document
-                        </button>
-                      )}
-                    </div>
-                    {isLoadingFundingUrl ? (
-                      <div className="flex flex-col items-center justify-center gap-3 py-12 bg-slate-50">
-                        <Loader2 className="w-8 h-8 animate-spin text-[#C8102E]" />
-                        <p className="text-sm text-slate-500">Preparing document…</p>
-                      </div>
-                    ) : fundingSignedUrl ? (
-                      (() => {
-                        const isPdf = (proposal.fundingDocumentUrl || '').toLowerCase().includes('.pdf');
-                        return isPdf ? (
-                          <div className="w-full bg-slate-100 relative" style={{ height: '50vh', minHeight: 320 }}>
-                            <iframe src={fundingSignedUrl} className="w-full h-full" title="Funding Approval Document" />
-                          </div>
-                        ) : (
-                          <div className="flex flex-col items-center justify-center gap-3 py-10 bg-slate-50">
-                            <FileCheck className="w-10 h-10 text-emerald-500" />
-                            <p className="text-sm text-slate-600 font-medium">Document ready</p>
-                            <p className="text-xs text-slate-400">Click "Open Document" above to view or download.</p>
-                          </div>
-                        );
-                      })()
-                    ) : (
-                      <div className="flex flex-col items-center justify-center gap-3 py-10 bg-slate-50">
-                        <AlertTriangle className="w-8 h-8 text-amber-400" />
-                        <p className="text-sm text-slate-500 text-center px-4">
-                          {fundingUrlError || 'Unable to load the approval document.'}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="rounded-lg border border-dashed border-green-300 bg-green-100/30 p-4 flex items-center gap-3 text-sm text-green-700">
-                    <FileText className="w-5 h-5 text-green-500 flex-shrink-0" />
-                    No approval document was attached by the R&D staff.
-                  </div>
-                )}
-
-
                 {/* Total Funded Amount + funded date — outside the card */}
                 <div className="rounded-xl bg-emerald-600 p-5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg shadow-emerald-100">
                   <div className="flex items-center gap-3">
@@ -1764,6 +1675,50 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                   </div>
                 </div>
                 <Signature className="absolute -right-6 -bottom-6 w-32 h-32 text-blue-200 opacity-50 z-0" />
+              </div>
+            )}
+
+            {(proposal.status?.toLowerCase() === 'revision_funding') && (
+              <div className="bg-orange-50 border border-orange-200 rounded-xl p-5 md:p-6 relative overflow-hidden">
+                <div className="relative z-10 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                  <div>
+                    <h3 className="text-lg font-bold text-orange-800 mb-1 flex items-center gap-2">
+                      Funding Revision
+                    </h3>
+                    <p className="text-sm text-slate-600 leading-relaxed">
+                      Comment: Your proposal is currently under internal funding-stage review by the R&D staff. No action is required from you at this time.
+                    </p>
+                    {proposal.lastUpdated && (
+                      <p className="flex items-center gap-1.5 text-xs text-orange-500 mt-3">
+                        <Calendar className="w-3 h-3" />
+                        Status updated on <span className="font-semibold">{formatDate(proposal.lastUpdated || '')}</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <RefreshCw className="absolute -right-6 -bottom-6 w-32 h-32 text-orange-200 opacity-40 z-0 pointer-events-none" />
+              </div>
+            )}
+
+            {(proposal.status?.toLowerCase() === 'rejected_funding') && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-5 md:p-6 relative overflow-hidden">
+                <div className="relative z-10 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                  <div>
+                    <h3 className="text-lg font-bold text-red-800 mb-1 flex items-center gap-2">
+                      Funding Rejected
+                    </h3>
+                    <p className="text-sm text-slate-600 leading-relaxed">
+                      Comment: Your proposal did not pass the funding-stage decision. No action is required from you on this page while the R&D staff handles the next step internally.
+                    </p>
+                    {proposal.lastUpdated && (
+                      <p className="flex items-center gap-1.5 text-xs text-red-500 mt-3">
+                        <Calendar className="w-3 h-3" />
+                        Status updated on <span className="font-semibold">{formatDate(proposal.lastUpdated || '')}</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <XCircle className="absolute -right-6 -bottom-6 w-32 h-32 text-red-200 opacity-40 z-0 pointer-events-none" />
               </div>
             )}
 
@@ -2269,8 +2224,14 @@ const DetailedProposalModal: React.FC<DetailedProposalModalProps> = ({
                 {/* Status Badge */}
                 <div className="mt-4 p-3 rounded-lg border border-yellow-300 bg-yellow-100">
                   <p className="text-xs font-bold text-yellow-900 uppercase">Current Status</p>
-                  <p className="text-sm font-bold text-yellow-900 mt-1">Revised Proposal</p>
-                  <p className="text-xs text-yellow-800">Your revision has been submitted and is now under R&D evaluation.</p>
+                  <p className="text-sm font-bold text-yellow-900 mt-1">
+                    {revisionSubmissionReturnedToFunding ? 'Endorsed for Funding' : 'Revised Proposal'}
+                  </p>
+                  <p className="text-xs text-yellow-800">
+                    {revisionSubmissionReturnedToFunding
+                      ? 'Your revision has been submitted and is back in the Project Funding queue for review.'
+                      : 'Your revision has been submitted and is now under R&D evaluation.'}
+                  </p>
                 </div>
 
                 <button

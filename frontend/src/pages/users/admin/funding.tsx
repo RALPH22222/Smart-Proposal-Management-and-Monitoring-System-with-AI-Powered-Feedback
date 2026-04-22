@@ -21,17 +21,14 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { type Proposal, type ProposalStatus } from '../../../types/InterfaceProposal';
-import { getProposalUploadUrl, uploadFileToS3 } from '../../../services/proposal.api';
 import { adminProposalApi } from '../../../services/AdminProposalApi/ProposalApi';
 import { api } from '../../../utils/axios';
 import FundingActionModal from '../../../components/shared/FundingActionModal';
 import type { FundingActionSubmitData } from '../../../components/shared/FundingActionModal';
-import DocumentViewerModal from '../../../components/shared/DocumentViewerModal';
 import RealignmentReviewModal from '../../../components/shared/RealignmentReviewModal';
 import ProjectBudgetViewerModal from '../../../components/shared/ProjectBudgetViewerModal';
 import PageLoader from '../../../components/shared/PageLoader';
 import { formatDate } from '../../../utils/date-formatter';
-import { transformProposalForModal } from '../../../utils/proposal-transform';
 import {
   fetchRealignments,
   type RealignmentRecord,
@@ -50,9 +47,7 @@ const AdminFundingPage: React.FC = () => {
   const itemsPerPage = 5;
  
   const [activeProposal, setActiveProposal] = useState<Proposal | null>(null);
-  const [activeProposalRaw, setActiveProposalRaw] = useState<any>(null);
   const [isActionModalOpen, setIsActionModalOpen] = useState(false);
-  const [viewingDocumentUrl, setViewingDocumentUrl] = useState<string | null>(null);
  
   const [realignments, setRealignments] = useState<RealignmentRecord[]>([]);
   const [realignmentsLoading, setRealignmentsLoading] = useState(false);
@@ -122,14 +117,6 @@ const AdminFundingPage: React.FC = () => {
   const handleActionSubmit = async (data: FundingActionSubmitData): Promise<boolean> => {
     if (!activeProposal) return false;
     try {
-      let fileUrl: string | undefined;
-
-      if (data.file) {
-        const { uploadUrl, fileUrl: s3FileUrl } = await getProposalUploadUrl(data.file.name, data.file.type, data.file.size);
-        await uploadFileToS3(uploadUrl, data.file);
-        fileUrl = s3FileUrl;
-      }
-
       const decisionMap: Record<string, string> = {
         Approve: 'funded',
         Revise: 'revision_funding',
@@ -139,7 +126,6 @@ const AdminFundingPage: React.FC = () => {
       await api.post('/proposal/endorse-for-funding', {
         proposal_id: activeProposal.id,
         decision: decisionMap[data.decision],
-        file_url: fileUrl,
       });
 
       await loadFundingProposals();
@@ -556,19 +542,6 @@ const AdminFundingPage: React.FC = () => {
                                 Budget Tracker
                               </button>
                             )}
-                            {(proposal as any).fundingDocumentUrl && (
-                              <button
-                                onClick={() => {
-                                  setActiveProposal(proposal);
-                                  setActiveProposalRaw((proposal as any)._raw);
-                                  setViewingDocumentUrl((proposal as any).fundingDocumentUrl!);
-                                }}
-                                className="inline-flex items-center gap-1.5 px-3 h-8 rounded-lg bg-[#C8102E] text-white hover:bg-[#A00C24] hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#C8102E] transition-all duration-200 cursor-pointer text-xs font-medium shadow-sm"
-                              >
-                                <Eye className="w-3.5 h-3.5" />
-                                View File
-                              </button>
-                            )}
                           </div>
                         ) : null}
                       </div>
@@ -618,20 +591,6 @@ const AdminFundingPage: React.FC = () => {
       onClose={() => setIsActionModalOpen(false)}
       onSubmit={handleActionSubmit}
       proposalTitle={activeProposal?.title || ''}
-    />
-
-    <DocumentViewerModal
-      isOpen={!!viewingDocumentUrl}
-      onClose={() => { setViewingDocumentUrl(null); setActiveProposalRaw(null); }}
-      documentUrl={viewingDocumentUrl || ''}
-      title="Funding Approval Document"
-      proposal={activeProposalRaw ? transformProposalForModal(activeProposalRaw) : activeProposal}
-      onOpenDetails={(p) => {
-        // Admin always goes to admin layout
-        navigate('/users/admin/adminMainLayout?tab=proposals', { 
-          state: { openProposalId: p.id } 
-        });
-      }}
     />
 
     {activeRealignmentId != null && (
