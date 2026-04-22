@@ -85,11 +85,16 @@ export const handler = buildCorsHeaders(async (event: APIGatewayProxyEvent) => {
 
   if (error) {
     console.error("Supabase error: ", JSON.stringify(error, null, 2));
+    const code = (error as any).code;
+    // Map known business-rule errors to 4xx so they don't surface as 500s.
+    let statusCode = 500;
+    if (code === "TERMINAL_REPORT_EXISTS") statusCode = 409;
+    else if (code === "SURRENDER_EXCEEDS_BALANCE") statusCode = 400;
     return {
-      statusCode: (error as any).code === "TERMINAL_REPORT_EXISTS" ? 409 : 500,
+      statusCode,
       body: JSON.stringify({
         message: error.message || "Internal server error.",
-        code: (error as any).code,
+        code,
       }),
     };
   }

@@ -74,6 +74,15 @@ export default function TerminalReportSection({ fundedProjectId, allQuartersVeri
 
   if (!allQuartersVerified || loading) return null;
 
+  // Derived surrender validation — also used to drive the submit button's
+  // disabled state so a known-bad value can't reach the server.
+  const surrenderValue = parseFloat(surrenderedAmount) || 0;
+  const unexpendedFromSummary = budgetSummary
+    ? Math.max(0, budgetSummary.total_budget - budgetSummary.total_actual_spent)
+    : 0;
+  const surrenderExceedsUnexpended =
+    !!budgetSummary && surrenderValue > unexpendedFromSummary + 0.01;
+
   const handleFileAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newFiles = Array.from(e.target.files || []);
     for (const f of newFiles) {
@@ -93,6 +102,15 @@ export default function TerminalReportSection({ fundedProjectId, allQuartersVeri
       Swal.fire(
         'Too short',
         `Accomplishments must be at least 10 characters (currently ${trimmedAccomplishments.length}).`,
+        'warning',
+      );
+      return;
+    }
+
+    if (surrenderExceedsUnexpended) {
+      Swal.fire(
+        'Over-surrender',
+        `You're declaring ₱${surrenderValue.toFixed(2)} to surrender, but the unexpended balance is only ₱${unexpendedFromSummary.toFixed(2)}. Lower the surrender amount to the unexpended balance (or less).`,
         'warning',
       );
       return;
@@ -474,8 +492,14 @@ export default function TerminalReportSection({ fundedProjectId, allQuartersVeri
         {/* Submit — also blocked when MOA / Agency Cert missing. */}
         <button
           onClick={handleSubmit}
-          disabled={submitting || accomplishments.trim().length < 10 || complianceBlocked}
-          title={complianceBlocked ? `Upload required first: ${missingComplianceDocs.join(', ')}` : undefined}
+          disabled={submitting || accomplishments.trim().length < 10 || complianceBlocked || surrenderExceedsUnexpended}
+          title={
+            complianceBlocked
+              ? `Upload required first: ${missingComplianceDocs.join(', ')}`
+              : surrenderExceedsUnexpended
+                ? `Surrender (₱${surrenderValue.toFixed(2)}) exceeds the unexpended balance (₱${unexpendedFromSummary.toFixed(2)})`
+                : undefined
+          }
           className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg disabled:bg-gray-400 disabled:cursor-not-allowed text-sm"
         >
           {submitting

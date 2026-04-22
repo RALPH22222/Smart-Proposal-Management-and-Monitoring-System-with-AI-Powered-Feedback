@@ -4084,26 +4084,25 @@ export class ProjectService {
     // Financial reconciliation gate: the declared surrender must not exceed the
     // actual unexpended balance (allocated − spent). Over-surrender would mean
     // proponent is promising to return money they don't hold.
+    //
+    // Use getBudgetSummary so this comparison sees the same numbers the UI
+    // showed the proponent when they filled in the form. A previous direct
+    // embed on `current_budget_version_id` could return null and flip
+    // allocated to 0, contradicting the summary endpoint the UI calls.
     const surrenderedAmount = Number(input.surrendered_amount ?? 0) || 0;
     if (surrenderedAmount > 0) {
-      const { data: activeVersion } = await this.db
-        .from("funded_projects")
-        .select("current_budget_version_id, proposal_budget_versions!funded_projects_current_budget_version_id_fkey(grand_total)")
-        .eq("id", input.funded_project_id)
-        .single();
-      const allocatedTotal = Number(
-        (activeVersion as any)?.proposal_budget_versions?.grand_total ?? 0,
+      const { data: summary, error: summaryError } = await this.getBudgetSummary(
+        input.funded_project_id,
       );
+      if (summaryError || !summary) {
+        return {
+          data: null,
+          error: summaryError ?? { message: "Could not load budget summary for surrender validation." },
+        };
+      }
 
-      const { data: expenses } = await this.db
-        .from("project_expenses")
-        .select("approved_amount, expenses, project_reports!inner(funded_project_id)")
-        .eq("project_reports.funded_project_id", input.funded_project_id);
-      const spentTotal = (expenses ?? []).reduce(
-        (sum, e) => sum + (Number((e as any).approved_amount ?? (e as any).expenses) || 0),
-        0,
-      );
-
+      const allocatedTotal = Number(summary.total_budget) || 0;
+      const spentTotal = Number(summary.total_actual_spent) || 0;
       const unexpendedBalance = allocatedTotal - spentTotal;
       // Tolerate 0.01 PHP rounding drift
       if (surrenderedAmount > unexpendedBalance + 0.01) {
